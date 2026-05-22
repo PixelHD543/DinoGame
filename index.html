@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Dino Duel Arena - Prototype TCG Simulator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      background: linear-gradient(145deg, #1a472a 0%, #0e2a1a 100%);
+      font-family: 'Segoe UI', 'Roboto', 'Trebuchet MS', sans-serif;
+      margin: 0;
+      padding: 20px;
+      color: #f3e9c0;
+    }
+
+    /* main game container */
+    .game-container {
+      max-width: 1600px;
+      margin: 0 auto;
+      background: #2c1e12b3;
+      border-radius: 48px;
+      backdrop-filter: blur(3px);
+      padding: 16px;
+      box-shadow: 0 20px 35px rgba(0,0,0,0.5);
+      border: 2px solid #d4af37;
+    }
+
+    /* player areas */
+    .player-area {
+      background: #1e2a1bdd;
+      border-radius: 32px;
+      padding: 16px;
+      margin-bottom: 24px;
+      border: 1px solid #b68b40;
+      box-shadow: inset 0 0 10px #00000033, 0 8px 18px black;
+    }
+
+    .top-player {
+      margin-bottom: 24px;
+    }
+
+    .zone-title {
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      background: #00000099;
+      display: inline-block;
+      padding: 2px 12px;
+      border-radius: 40px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .zones-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin: 12px 0;
+    }
+
+    .zone {
+      background: #2d2418aa;
+      border-radius: 20px;
+      padding: 8px;
+      min-width: 120px;
+      backdrop-filter: blur(4px);
+      border: 1px solid #cb9e5e;
+      transition: 0.1s;
+    }
+
+    .dino-zone {
+      background: #4a2e1ecc;
+      min-width: 150px;
+      border-left: 8px solid #ff8c42;
+    }
+
+    .energy-zone {
+      background: #c9510ccc;
+    }
+
+    .research-zone {
+      background: #2d5f6ecc;
+    }
+
+    .card-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      min-height: 130px;
+    }
+
+    .card {
+      background: #fef0cf;
+      color: #2c1a0e;
+      border-radius: 12px;
+      padding: 8px 6px;
+      width: 120px;
+      font-size: 11px;
+      font-weight: bold;
+      text-align: center;
+      box-shadow: 2px 4px 8px black;
+      border: 1px solid #ebc17e;
+      cursor: pointer;
+      transition: 0.05s linear;
+      word-break: break-word;
+    }
+
+    .card:hover {
+      transform: scale(1.02);
+      background: #ffe6b3;
+      box-shadow: 0 0 5px gold;
+    }
+
+    .dino-card {
+      border-top: 6px solid #e67e22;
+    }
+
+    .energy-token {
+      background: #ffb347;
+      color: #2c1a0e;
+      border-radius: 40px;
+      padding: 5px 10px;
+      display: inline-block;
+      margin: 2px;
+      font-size: 11px;
+    }
+
+    .hand-area {
+      background: #35281599;
+      border-radius: 28px;
+      padding: 12px;
+      margin-top: 12px;
+      min-height: 140px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid #dba458;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    button {
+      background: #d9a13b;
+      border: none;
+      color: #1f2f0c;
+      font-weight: bold;
+      padding: 10px 20px;
+      border-radius: 60px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: 0.1s;
+      box-shadow: 0 2px 5px black;
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    .turn-indicator {
+      font-size: 1.6rem;
+      font-weight: bold;
+      text-align: center;
+      background: #000000aa;
+      display: inline-block;
+      padding: 5px 20px;
+      border-radius: 60px;
+      margin-bottom: 10px;
+    }
+
+    .points {
+      font-size: 1.4rem;
+      background: #00000099;
+      border-radius: 30px;
+      padding: 0 15px;
+    }
+
+    .log {
+      background: #0f0f0fcc;
+      border-radius: 20px;
+      padding: 12px;
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 12px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+<div class="game-container">
+  <div style="display: flex; justify-content: space-between; align-items: baseline;">
+    <h1>🦖 DINO DUEL ARENA 🦕</h1>
+    <div class="points">🏆 P1: <span id="p1Points">0</span> &nbsp;| P2: <span id="p2Points">0</span></div>
+    <div class="turn-indicator" id="turnText">⚡ PLAYER 1 TURN</div>
+  </div>
+  
+  <!-- Player 2 (top) -->
+  <div class="player-area top-player" id="player2Area">
+    <h3>🧪 OPPONENT (P2)</h3>
+    <div class="zones-grid">
+      <div class="zone dino-zone"><div class="zone-title">🦕 DINO ZONES</div><div id="p2Dinos" class="card-stack"></div></div>
+      <div class="zone"><div class="zone-title">⭐ STARTER</div><div id="p2Starter" class="card-stack"></div></div>
+      <div class="zone"><div class="zone-title">📚 ACTIVE RESEARCH</div><div id="p2Research" class="card-stack"></div></div>
+      <div class="zone energy-zone"><div class="zone-title">⚡ ENERGY BANK</div><div id="p2EnergyBank">0</div><button class="add-energy-btn" data-player="2">+1 Energy (per turn)</button></div>
+      <div class="zone"><div class="zone-title">💀 GRAVEYARD</div><div id="p2Grave" class="card-stack"></div></div>
+      <div class="zone"><div class="zone-title">📖 DECK</div><div id="p2DeckCount" class="card-stack">Deck: 0</div></div>
+    </div>
+    <div class="hand-area"><span class="zone-title">✋ HAND (click card to play)</span><div id="p2Hand" class="card-stack" style="flex-direction: row; flex-wrap: wrap;"></div></div>
+  </div>
+
+  <!-- shared field / center -->
+  <div style="background:#2d2418aa; border-radius: 24px; margin: 8px 0; padding: 12px; text-align: center;">
+    <span class="zone-title">🌍 FIELD ZONE (shared effect)</span>
+    <div id="fieldZone" style="min-height: 80px;" class="card-stack"></div>
+    <div style="font-size:12px;">⚔️ Battle actions: click your dino -> select target -> discard energies</div>
+  </div>
+
+  <!-- Player 1 (bottom) -->
+  <div class="player-area" id="player1Area">
+    <h3>🔥 YOU (P1)</h3>
+    <div class="zones-grid">
+      <div class="zone dino-zone"><div class="zone-title">🦕 DINO ZONES</div><div id="p1Dinos" class="card-stack"></div></div>
+      <div class="zone"><div class="zone-title">⭐ STARTER</div><div id="p1Starter" class="card-stack"></div></div>
+      <div class="zone"><div class="zone-title">📚 ACTIVE RESEARCH</div><div id="p1Research" class="card-stack"></div></div>
+      <div class="zone energy-zone"><div class="zone-title">⚡ ENERGY BANK</div><div id="p1EnergyBank">0</div><button class="add-energy-btn" data-player="1">+1 Energy (per turn)</button></div>
+      <div class="zone"><div class="zone-title">💀 GRAVEYARD</div><div id="p1Grave" class="card-stack"></div></div>
+      <div class="zone"><div class="zone-title">📖 DECK</div><div id="p1DeckCount" class="card-stack">Deck: 0</div></div>
+    </div>
+    <div class="hand-area"><span class="zone-title">✋ HAND (click card to play)</span><div id="p1Hand" class="card-stack" style="flex-direction: row; flex-wrap: wrap;"></div></div>
+  </div>
+  
+  <div class="control-buttons">
+    <button id="endTurnBtn">🔁 END TURN</button>
+    <button id="drawBtn">📜 DRAW 1 CARD</button>
+    <button id="resetGameBtn">🔄 NEW MATCH</button>
+  </div>
+  <div class="log" id="gameLog">✨ Welcome, Dino Tamers! Click 'NEW MATCH' to start. ✨</div>
+</div>
+
+<script>
+  // --------------------------------------------------------------
+  // 1. CARD DATABASE (based on document)
+  // --------------------------------------------------------------
+  const cardDB = {
+    // Dinosaurs (key: id, includes stats)
+    dinos: {
+      "Baby rex": { name:"Baby rex", type:"fire", stage:1, power:1500, hp:2000, effect:"If in starter, inflict burn", archetype:"monsterus" },
+      "T-rex": { name:"T-rex", type:"fire", stage:2, power:3000, hp:3500, effect:"Can attack twice per turn", archetype:"monsterus" },
+      "Omega rex": { name:"Omega rex", type:"fire", stage:3, power:5000, hp:3000, effect:"Use multiple moves", archetype:"monsterus" },
+      "Baby Triceratops": { name:"Baby Triceratops", type:"grass", stage:1, power:2000, hp:2500, effect:"", archetype:"horned" },
+      "Triceratops": { name:"Triceratops", type:"grass", stage:2, power:4000, hp:4000, effect:"Boost", archetype:"horned" },
+      "Baby Velociraptor": { name:"Baby Velociraptor", type:"electric", stage:1, power:1000, hp:800, effect:"Spawn egg token", archetype:"ambush" },
+      "Velociraptor": { name:"Velociraptor", type:"electric", stage:2, power:2000, hp:1000, effect:"Attack for each raptor", archetype:"ambush" },
+      "Baby Ankylosaurus": { name:"Baby Ankylosaurus", type:"ground", stage:1, power:1500, hp:2500, effect:"", archetype:"armoured" },
+      "Ankylosaurus": { name:"Ankylosaurus", type:"ground", stage:2, power:2000, hp:3500, effect:"Ignore opponent effects", archetype:"armoured" },
+      "Baby Argentinosaurus": { name:"Baby Argentinosaurus", type:"normal", stage:1, power:1500, hp:3000, effect:"", archetype:"seropoud" },
+      "Argentinosaurus": { name:"Argentinosaurus", type:"normal", stage:2, power:3500, hp:7000, effect:"Titan health", archetype:"seropoud" },
+      "Plesiosaur": { name:"Plesiosaur", type:"water", stage:2, power:3000, hp:4000, effect:"mill 2 opponent cards", archetype:"aquatic" },
+      "Mosasaur": { name:"Mosasaur", type:"water", stage:2, power:4000, hp:2000, effect:"destroy on evolve", archetype:"aquatic" },
+      "Carnotaurus": { name:"Carnotaurus", type:"wind", stage:2, power:3500, hp:2000, effect:"recycle GY", archetype:"aggressive" },
+    },
+    moves: {
+      "Tsunami": { type:"water", cost:1, effect:"carry over damage" },
+      "Drown": { type:"water", cost:2, effect:"discard random" },
+      "Lightning attack": { type:"electric", cost:1, effect:"paralyze" },
+      "Meteor blast": { type:"fire", cost:1, effect:"bonus damage" },
+      "Stomp": { type:"normal", cost:1, effect:"direct" },
+      "Rapid growth": { type:"grass", cost:1, effect:"heal" },
+      "Phalanx": { type:"ground", cost:1, effect:"defense boost" },
+    },
+    research: {
+      "Palaeontology": { effect:"search move", stay:false },
+      "Dig site": { effect:"add dino from deck", stay:false },
+      "Abandoned laboratory": { effect:"energy to revive", stay:true },
+    },
+    dna: {
+      "Aggression": { effect:"+500 power", genome:1 },
+      "Energy surplus": { effect:"considered energy", genome:1 }
+    }
+  };
+
+  // Helper to get full card copy
+  function getCardCopy(id, category){
+    if(category === 'dino') return {...cardDB.dinos[id], cardId:id, category:'dino', energyAttached:0, damage:0, status:[] };
+    if(category === 'move') return {...cardDB.moves[id], cardId:id, category:'move'};
+    if(category === 'research') return {...cardDB.research[id], cardId:id, category:'research'};
+    if(category === 'dna') return {...cardDB.dna[id], cardId:id, category:'dna'};
+    return null;
+  }
+
+  // Predefined decks (simple starter)
+  const getStartingDeck = () => {
+    let deck = [];
+    // mix dinos
+    deck.push(getCardCopy("Baby rex",'dino'), getCardCopy("T-rex",'dino'), getCardCopy("Omega rex",'dino'));
+    deck.push(getCardCopy("Baby Triceratops",'dino'), getCardCopy("Triceratops",'dino'));
+    deck.push(getCardCopy("Baby Velociraptor",'dino'), getCardCopy("Velociraptor",'dino'));
+    deck.push(getCardCopy("Baby Ankylosaurus",'dino'), getCardCopy("Ankylosaurus",'dino'));
+    deck.push(getCardCopy("Plesiosaur",'dino'), getCardCopy("Mosasaur",'dino'));
+    deck.push(getCardCopy("Carnotaurus",'dino'));
+    deck.push(getCardCopy("Baby Argentinosaurus",'dino'), getCardCopy("Argentinosaurus",'dino'));
+    // moves
+    deck.push(getCardCopy("Tsunami",'move'), getCardCopy("Lightning attack",'move'), getCardCopy("Meteor blast",'move'));
+    deck.push(getCardCopy("Stomp",'move'), getCardCopy("Rapid growth",'move'));
+    // research
+    deck.push(getCardCopy("Palaeontology",'research'), getCardCopy("Dig site",'research'));
+    return deck;
+  };
+
+  // --------------------------------------------------------------
+  // 2. Game State & Zones
+  // --------------------------------------------------------------
+  let gameState = {
+    p1: { deck: [], hand: [], dinoZones: [null,null,null], starterZone: null, researchZone: null, graveyard: [], energyBank: 0, points: 0, active: true },
+    p2: { deck: [], hand: [], dinoZones: [null,null,null], starterZone: null, researchZone: null, graveyard: [], energyBank: 0, points: 0, active: false },
+    fieldCard: null,
+    turn: 1, // 1 or 2
+    phase: 'main',
+    turnEnergyAdded: {1:false,2:false},
+    selectedAttacker: null, // for battle
+    battleTarget: null,
+    awaitingEnergyDiscard: null,
+  };
+
+  let currentLog = [];
+  function addLog(msg){ currentLog.unshift(msg); if(currentLog.length>20) currentLog.pop(); document.getElementById('gameLog').innerHTML = currentLog.map(l=>`🦖 ${l}`).join('<br>'); }
+
+  // UI update (render all zones)
+  function renderAll() {
+    renderPlayer(1);
+    renderPlayer(2);
+    document.getElementById('p1Points').innerText = gameState.p1.points;
+    document.getElementById('p2Points').innerText = gameState.p2.points;
+    document.getElementById('turnText').innerHTML = gameState.turn === 1 ? '🔥 PLAYER 1 TURN' : '🌙 PLAYER 2 TURN';
+    // field zone render
+    const fz = document.getElementById('fieldZone');
+    fz.innerHTML = '';
+    if(gameState.fieldCard) fz.innerHTML = `<div class="card">🌍 Field: ${gameState.fieldCard.cardId}</div>`;
+    else fz.innerHTML = '<div style="opacity:0.6">no field card</div>';
+  }
+
+  function renderPlayer(pid) {
+    const p = pid === 1 ? gameState.p1 : gameState.p2;
+    const prefix = `p${pid}`;
+    // dino zones
+    for(let i=0;i<3;i++){
+      const zoneDiv = document.getElementById(`${prefix}Dinos`).children[i] || null;
+      const container = document.getElementById(`${prefix}Dinos`);
+      while(container.firstChild) container.removeChild(container.firstChild);
+      p.dinoZones.forEach((dino,idx)=>{
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'card dino-card';
+        if(dino){
+          cardDiv.innerHTML = `<b>${dino.name}</b><br>⚡${dino.power} ❤️${dino.hp-dino.damage}/${dino.hp}<br>🔋${dino.energyAttached}<br>${dino.status.join(',')}`;
+          cardDiv.setAttribute('data-dino-index',idx);
+          cardDiv.setAttribute('data-player',pid);
+          cardDiv.style.cursor = 'pointer';
+          cardDiv.onclick = (e) => { e.stopPropagation(); selectAttacker(pid, idx); };
+        } else {
+          cardDiv.innerHTML = `<i>empty slot</i>`;
+        }
+        container.appendChild(cardDiv);
+      });
+    }
+    // starter zone
+    const starterDiv = document.getElementById(`${prefix}Starter`);
+    starterDiv.innerHTML = '';
+    if(p.starterZone){
+      let cardDiv = document.createElement('div'); cardDiv.className='card';
+      cardDiv.innerHTML = `<b>⭐ STARTER</b><br>${p.starterZone.name}<br>${p.starterZone.power}/${p.starterZone.hp}`;
+      starterDiv.appendChild(cardDiv);
+    } else starterDiv.innerHTML = '<i>No starter</i>';
+    // research zone
+    const resDiv = document.getElementById(`${prefix}Research`);
+    resDiv.innerHTML = '';
+    if(p.researchZone){
+      let rDiv = document.createElement('div'); rDiv.className='card';
+      rDiv.innerHTML = `📜 ${p.researchZone.cardId}`;
+      resDiv.appendChild(rDiv);
+    } else resDiv.innerHTML = '<i>Empty</i>';
+    // graveyard
+    const gyDiv = document.getElementById(`${prefix}Grave`);
+    gyDiv.innerHTML = `<div style="font-size:10px">${p.graveyard.length} cards</div>`;
+    // deck count
+    document.getElementById(`${prefix}DeckCount`).innerHTML = `📚 ${p.deck.length} cards`;
+    // energy bank
+    document.getElementById(`${prefix}EnergyBank`).innerHTML = `${p.energyBank}`;
+    // hand
+    const handDiv = document.getElementById(`${prefix}Hand`);
+    handDiv.innerHTML = '';
+    p.hand.forEach((card, idx) => {
+      const cardEl = document.createElement('div');
+      cardEl.className = `card ${card.category}-card`;
+      let text = `${card.cardId}`;
+      if(card.category === 'dino') text += ` (${card.power}/${card.hp})`;
+      else if(card.category === 'move') text += ` cost:${card.cost}`;
+      cardEl.innerHTML = text;
+      cardEl.onclick = () => playCardFromHand(pid, idx);
+      handDiv.appendChild(cardEl);
+    });
+  }
+
+  // --------------------------------------------------------------
+  // 3. Game Actions
+  // --------------------------------------------------------------
+  function startMatch(){
+    let deck1 = getStartingDeck(); shuffle(deck1);
+    let deck2 = getStartingDeck(); shuffle(deck2);
+    gameState = {
+      p1: { deck: deck1, hand: [], dinoZones: [null,null,null], starterZone: null, researchZone: null, graveyard: [], energyBank: 2, points: 0, active: true },
+      p2: { deck: deck2, hand: [], dinoZones: [null,null,null], starterZone: null, researchZone: null, graveyard: [], energyBank: 2, points: 0, active: false },
+      fieldCard: null, turn: 1, phase: 'main', turnEnergyAdded: {1:false,2:false}, selectedAttacker: null, battleTarget: null, awaitingEnergyDiscard: null
+    };
+    // initial starter dino: choose first stage1 dino from deck
+    [1,2].forEach(pid => {
+      let starter = gameState[`p${pid}`].deck.find(c => c.category==='dino' && c.stage === 1);
+      if(starter){
+        let idx = gameState[`p${pid}`].deck.findIndex(c=>c===starter);
+        gameState[`p${pid}`].starterZone = {...starter, damage:0, energyAttached:0};
+        gameState[`p${pid}`].deck.splice(idx,1);
+      } else {
+        let anyDino = gameState[`p${pid}`].deck.find(c=>c.category==='dino');
+        if(anyDino){ let idx=gameState[`p${pid}`].deck.indexOf(anyDino); gameState[`p${pid}`].starterZone = {...anyDino, damage:0}; gameState[`p${pid}`].deck.splice(idx,1);}
+      }
+      // draw 6 cards
+      for(let i=0;i<6;i++) drawCard(pid);
+      gameState[`p${pid}`].energyBank = 1;
+    });
+    gameState.turn = 1;
+    gameState.turnEnergyAdded = {1:false,2:false};
+    addLog("🏁 New Duel! Start with starter dino and 6 cards. Player 1 goes first.");
+    renderAll();
+  }
+
+  function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
+
+  function drawCard(pid){
+    let player = gameState[`p${pid}`];
+    if(player.deck.length===0){ addLog(`Player ${pid} out of cards!`); return false; }
+    let drawn = player.deck.pop();
+    player.hand.push(drawn);
+    addLog(`P${pid} drew ${drawn.cardId}`);
+    renderAll();
+    return true;
+  }
+
+  function playCardFromHand(pid, handIdx){
+    if(gameState.turn !== pid) { addLog(`Not your turn!`); return; }
+    let player = gameState[`p${pid}`];
+    let card = player.hand[handIdx];
+    if(!card) return;
+    if(card.category === 'dino'){
+      // place dino: can only place once per turn; check free slot
+      let emptySlot = player.dinoZones.findIndex(z => z === null);
+      if(emptySlot === -1){ addLog(`No free dino zone!`); return; }
+      // move from hand
+      player.dinoZones[emptySlot] = {...card, damage:0, energyAttached:0, status:[]};
+      player.hand.splice(handIdx,1);
+      addLog(`P${pid} summoned ${card.name} to dino zone.`);
+      renderAll();
+    } 
+    else if(card.category === 'move'){
+      addLog(`Move cards are played during battle phase. Use attack command.`);
+    }
+    else if(card.category === 'research'){
+      if(player.researchZone && cardDB.research[card.cardId]?.stay){
+        addLog(`Research zone already occupied.`);
+        return;
+      }
+      player.researchZone = {...card};
+      player.hand.splice(handIdx,1);
+      addLog(`P${pid} activated research: ${card.cardId}`);
+      renderAll();
+    }
+    else if(card.category === 'dna'){
+      addLog(`DNA equip not fully automated yet, but can be attached to dinos via UI.`);
+    }
+  }
+
+  // add energy from bank to a dino
+  window.attachEnergyToDino = function(pid, zoneIdx){
+    if(gameState.turn !== pid) return;
+    let player = gameState[`p${pid}`];
+    let dino = player.dinoZones[zoneIdx];
+    if(!dino) return;
+    if(player.energyBank <=0) { addLog(`No energy in bank!`); return; }
+    player.energyBank--;
+    dino.energyAttached++;
+    addLog(`P${pid} attached 1 energy to ${dino.name}`);
+    renderAll();
+  };
+
+  // attack flow
+  function selectAttacker(pid, dinoIdx){
+    if(gameState.turn !== pid){ addLog(`Not attacker's turn`); return; }
+    let attacker = gameState[`p${pid}`].dinoZones[dinoIdx];
+    if(!attacker) return;
+    gameState.selectedAttacker = {pid, dinoIdx, dino:attacker};
+    addLog(`Select target (opponent dino slot or direct). Click on opponent's dino.`);
+    // attach temporary click to opponent dino zones
+    highlightTargets(true);
+  }
+  function highlightTargets(enable){
+    for(let i=0;i<3;i++){
+      let targetDiv = document.getElementById(`p${gameState.turn===1?2:1}Dinos`).children[i];
+      if(targetDiv && enable){
+        targetDiv.style.border = '3px solid red';
+        targetDiv.onclick = (e) => { e.stopPropagation(); confirmAttack(i); };
+      } else if(!enable && targetDiv){
+        targetDiv.style.border = '';
+        targetDiv.onclick = null;
+      }
+    }
+    // also direct attack if no dinos: check if opponent has any dino
+    if(enable){
+      let opp = gameState.turn===1? gameState.p2 : gameState.p1;
+      let hasDino = opp.dinoZones.some(d=>d!==null);
+      if(!hasDino){
+        addLog(`No dinos on opponent field → direct attack!`);
+        directAttack();
+        highlightTargets(false);
+      }
+    }
+  }
+  function directAttack(){
+    let attackerState = gameState.selectedAttacker;
+    if(!attackerState) return;
+    let power = attackerState.dino.power;
+    let energyCost = prompt(`Direct attack! How many energies to discard (0-${attackerState.dino.energyAttached})? Each adds 1000 dmg.`);
+    let discard = Math.min(parseInt(energyCost)||0, attackerState.dino.energyAttached);
+    if(discard>0) attackerState.dino.energyAttached -= discard;
+    let damage = power + (discard * 1000);
+    addLog(`Direct attack deals ${damage} damage! +1 point.`);
+    let oppPid = gameState.turn === 1 ? 2 : 1;
+    gameState[`p${oppPid}`].points++;
+    checkWin();
+    clearAttackState();
+    renderAll();
+  }
+  function confirmAttack(targetIdx){
+    let attacker = gameState.selectedAttacker;
+    if(!attacker) return;
+    let defenderPid = gameState.turn === 1 ? 2 : 1;
+    let defenderDino = gameState[`p${defenderPid}`].dinoZones[targetIdx];
+    if(!defenderDino){ addLog(`Invalid target`); clearAttackState(); return; }
+    let attackerDino = attacker.dino;
+    let maxEnergy = attackerDino.energyAttached;
+    let cost = prompt(`Attack with ${attackerDino.name}. Discard energy (0-${maxEnergy}) each adds 1000 attack.`);
+    let discardCount = Math.min(parseInt(cost)||0, maxEnergy);
+    if(discardCount>0) attackerDino.energyAttached -= discardCount;
+    let attackPower = attackerDino.power + (discardCount * 1000);
+    // defender may use 1 energy to defend
+    let defendPower = 0;
+    let useDefense = confirm(`Defender uses 1 energy to block? (${defenderDino.energyAttached} available)`);
+    if(useDefense && defenderDino.energyAttached>0){
+      defenderDino.energyAttached--;
+      defendPower = defenderDino.power;
+      addLog(`Defender uses energy, defense power ${defendPower}`);
+    }
+    let finalDamage = Math.max(0, attackPower - defendPower);
+    defenderDino.damage = (defenderDino.damage || 0) + finalDamage;
+    addLog(`${attackerDino.name} attacks ${defenderDino.name}: ${attackPower} vs ${defendPower} → ${finalDamage} damage!`);
+    if(defenderDino.damage >= defenderDino.hp){
+      addLog(`${defenderDino.name} destroyed! +1 point to P${gameState.turn}`);
+      let idxDest = gameState[`p${defenderPid}`].dinoZones.findIndex(d=>d===defenderDino);
+      gameState[`p${defenderPid}`].graveyard.push(defenderDino);
+      gameState[`p${defenderPid}`].dinoZones[idxDest] = null;
+      gameState[`p${gameState.turn}`].points++;
+      checkWin();
+    }
+    clearAttackState();
+    renderAll();
+  }
+  function clearAttackState(){
+    gameState.selectedAttacker = null;
+    highlightTargets(false);
+  }
+  function checkWin(){
+    if(gameState.p1.points >=6) { addLog("🏆 PLAYER 1 WINS! 🏆"); resetMatch(); }
+    else if(gameState.p2.points >=6) { addLog("🏆 PLAYER 2 WINS! 🏆"); resetMatch(); }
+    else renderAll();
+  }
+  function resetMatch(){ startMatch(); }
+
+  // energy button
+  function addEnergyFromZone(pid){
+    if(gameState.turn !== pid) { addLog(`Not your turn to add energy`); return; }
+    if(gameState.turnEnergyAdded[pid]) { addLog(`Already added energy from zone this turn`); return; }
+    let player = gameState[`p${pid}`];
+    player.energyBank++;
+    gameState.turnEnergyAdded[pid] = true;
+    addLog(`P${pid} added 1 energy from energy zone.`);
+    renderAll();
+  }
+
+  function endTurn(){
+    if(gameState.turn === 1){
+      gameState.turn = 2;
+      gameState.turnEnergyAdded = {1:false,2:false};
+      addLog("Turn passes to PLAYER 2.");
+      // draw for next player (beginning draw)
+      drawCard(2);
+    } else {
+      gameState.turn = 1;
+      gameState.turnEnergyAdded = {1:false,2:false};
+      addLog("Turn passes to PLAYER 1.");
+      drawCard(1);
+    }
+    gameState.selectedAttacker = null;
+    highlightTargets(false);
+    renderAll();
+  }
+
+  // event binding
+  function bindEvents(){
+    document.getElementById('endTurnBtn').onclick = () => endTurn();
+    document.getElementById('drawBtn').onclick = () => { if(gameState.turn) drawCard(gameState.turn); else addLog("Start match first"); };
+    document.getElementById('resetGameBtn').onclick = () => startMatch();
+    document.querySelectorAll('.add-energy-btn').forEach(btn => {
+      btn.onclick = (e) => { let pid = parseInt(btn.getAttribute('data-player')); addEnergyFromZone(pid); };
+    });
+  }
+
+  // additional attach energy from zone to dino: using click on energy display? we add mini buttons in dino cards
+  function addEnergyButtons(){
+    // dynamic re-render: this will be handled by renderAll but we attach events each render
+  }
+  // patch for attaching energy to dinos: after render, attach listeners to dinos display
+  function attachDinoEnergyListeners(){
+    for(let pid=1;pid<=2;pid++){
+      for(let i=0;i<3;i++){
+        let dinoSlot = document.getElementById(`p${pid}Dinos`).children[i];
+        if(dinoSlot && dinoSlot.getAttribute('data-dino-index')!==null){
+          let idx = parseInt(dinoSlot.getAttribute('data-dino-index'));
+          dinoSlot.ondblclick = (e) => { e.stopPropagation(); attachEnergyToDino(pid, idx); };
+          let energyBtn = document.createElement('button'); 
+        }
+      }
+    }
+  }
+  // override render to attach extra
+  const origRender = renderAll;
+  window.renderAll = function(){ origRender(); attachDinoEnergyListeners(); };
+  renderAll = window.renderAll;
+
+  startMatch();
+  bindEvents();
+  renderAll();
+</script>
+</body>
+</html>
