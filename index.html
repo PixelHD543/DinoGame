@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Dino Duel TCG - Full Game with Deck Editor</title>
+  <title>Dino Duel TCG - Full Integration with Images & Stats</title>
   <style>
     * {
       box-sizing: border-box;
@@ -16,7 +16,6 @@
       padding: 20px;
       color: #f7f3d9;
     }
-    /* Pages */
     .page {
       display: none;
       max-width: 1500px;
@@ -29,24 +28,9 @@
       border: 2px solid #e2b13b;
     }
     .page.active { display: block; }
-    /* Main menu */
-    .menu-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      flex-wrap: wrap;
-      margin: 50px 0;
-    }
-    .menu-card {
-      background: #1e2a1cdd;
-      border-radius: 32px;
-      padding: 30px;
-      text-align: center;
-      width: 260px;
-      cursor: pointer;
-      transition: 0.2s;
-      border: 1px solid #d4a259;
-    }
+    /* Menu */
+    .menu-buttons { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin: 50px 0; }
+    .menu-card { background: #1e2a1cdd; border-radius: 32px; padding: 30px; text-align: center; width: 260px; cursor: pointer; transition: 0.2s; border: 1px solid #d4a259; }
     .menu-card:hover { transform: scale(1.02); background: #2e3e2acc; }
     .menu-card h2 { margin: 0 0 10px; color: #ffdd99; }
     /* Deck editor */
@@ -55,9 +39,8 @@
     .deck-area { flex: 1.5; background: #2d2418dd; border-radius: 28px; padding: 16px; }
     .card-list { display: flex; flex-wrap: wrap; gap: 10px; max-height: 500px; overflow-y: auto; }
     .editable-card {
-      background: #fef0cf; color: #2c1a0e; border-radius: 14px; padding: 6px;
-      width: 100px; text-align: center; cursor: pointer; font-size: 11px;
-      border: 1px solid #d49c3b;
+      background: #fef0cf; color: #2c1a0e; border-radius: 14px; padding: 6px; width: 100px;
+      text-align: center; cursor: pointer; font-size: 11px; border: 1px solid #d49c3b;
     }
     .deck-slot {
       background: #3e2e1e; border-radius: 16px; padding: 6px; margin-bottom: 6px;
@@ -69,7 +52,7 @@
     }
     .danger-btn { background: #aa3e1c; color: white; }
     .nav-btn { margin: 20px 10px 0 0; }
-    /* Battle layout (restored perfect layout) */
+    /* Battle layout */
     .player-board {
       background: #1e2a1cdd; border-radius: 32px; padding: 16px; margin-bottom: 28px;
       border: 1px solid #c4913a; box-shadow: inset 0 0 8px #00000044, 0 6px 14px black;
@@ -79,7 +62,7 @@
     .grid-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
     .mirror-row { flex-direction: row-reverse; }
     .zone-card {
-      background: #2d2418cc; border-radius: 20px; padding: 8px; width: 130px; min-height: 180px;
+      background: #2d2418cc; border-radius: 20px; padding: 8px; width: 140px; min-height: 200px;
       backdrop-filter: blur(4px); border: 1px solid #dba14b; display: flex; flex-direction: column;
       align-items: center; box-shadow: 0 4px 8px black;
     }
@@ -93,13 +76,12 @@
     }
     .card {
       background: #fef0cf; color: #2c1a0e; border-radius: 14px; padding: 6px 4px;
-      width: 110px; font-size: 11px; font-weight: bold; text-align: center;
+      width: 120px; font-size: 11px; font-weight: bold; text-align: center;
       box-shadow: 2px 4px 8px black; border: 1px solid #f7c56e; cursor: pointer;
     }
-    .card-img-placeholder {
-      width: 60px; height: 60px; background: #c09a6b; margin: 4px auto;
-      border-radius: 12px; display: flex; align-items: center; justify-content: center;
-      font-size: 28px; box-shadow: inset 0 0 0 1px #e7cba5, 0 2px 4px black;
+    .card-img {
+      width: 80px; height: 80px; object-fit: contain; margin: 4px auto;
+      background: #c09a6b; border-radius: 12px; display: block;
     }
     .action-buttons { display: flex; gap: 6px; margin-top: 8px; justify-content: center; }
     .action-btn {
@@ -134,9 +116,9 @@
       max-height: 140px; overflow-y: auto; font-size: 12px; font-family: monospace;
     }
     @media (max-width: 1000px) {
-      .zone-card { width: 100px; min-height: 170px; }
-      .card { width: 90px; font-size: 9px; }
-      .card-img-placeholder { width: 45px; height: 45px; font-size: 20px; }
+      .zone-card { width: 110px; min-height: 180px; }
+      .card { width: 100px; font-size: 9px; }
+      .card-img { width: 60px; height: 60px; }
     }
   </style>
 </head>
@@ -150,7 +132,11 @@
   </div>
   <div style="background:#1f1a0fcc; border-radius: 24px; padding: 16px; margin-top: 30px;">
     <h3>📖 How to use:</h3>
-    <ul><li>Deck Editor: Choose player, add cards (max 30), save.</li><li>Battle Arena: Select saved decks, start match. Phase buttons forward only.</li><li>All decks saved automatically.</li></ul>
+    <ul>
+      <li><strong>Deck Editor:</strong> Choose player, add cards (max 30), save. All card stats are built-in.</li>
+      <li><strong>Images:</strong> Place your card images in an <code>images/</code> folder with filenames exactly matching card names (e.g., <code>T-rex.png</code>).</li>
+      <li><strong>Battle:</strong> Phase buttons forward only (Main → Battle → End). Attack/Defend buttons appear automatically.</li>
+    </ul>
   </div>
 </div>
 
@@ -186,36 +172,71 @@
 </div>
 
 <script>
-  // ---------- CARD DATABASE ----------
+  // ---------- FULL CARD DATABASE (from PDF) ----------
   const CARD_CATALOG = {
     dinos: [
-      { id:"Baby rex", name:"Baby rex", type:"fire", stage:1, power:1500, hp:2000, imageEmoji:"🔥🦖", category:"dino" },
-      { id:"T-rex", name:"T-rex", type:"fire", stage:2, power:3000, hp:3500, imageEmoji:"🔥🦖", category:"dino" },
-      { id:"Omega rex", name:"Omega rex", type:"fire", stage:3, power:5000, hp:3000, imageEmoji:"💥🦖", category:"dino" },
-      { id:"Baby Triceratops", name:"Baby Triceratops", type:"grass", stage:1, power:2000, hp:2500, imageEmoji:"🌿🦕", category:"dino" },
-      { id:"Triceratops", name:"Triceratops", type:"grass", stage:2, power:4000, hp:4000, imageEmoji:"🌿🦏", category:"dino" },
-      { id:"Baby Velociraptor", name:"Baby Velociraptor", type:"electric", stage:1, power:1000, hp:800, imageEmoji:"⚡🦖", category:"dino" },
-      { id:"Velociraptor", name:"Velociraptor", type:"electric", stage:2, power:2000, hp:1000, imageEmoji:"⚡🐓", category:"dino" },
-      { id:"Baby Ankylosaurus", name:"Baby Ankylosaurus", type:"ground", stage:1, power:1500, hp:2500, imageEmoji:"🛡️🦕", category:"dino" },
-      { id:"Ankylosaurus", name:"Ankylosaurus", type:"ground", stage:2, power:2000, hp:3500, imageEmoji:"🔨🦕", category:"dino" },
-      { id:"Baby Argentinosaurus", name:"Baby Argentinosaurus", type:"normal", stage:1, power:1500, hp:3000, imageEmoji:"🌿🦕", category:"dino" },
-      { id:"Argentinosaurus", name:"Argentinosaurus", type:"normal", stage:2, power:3500, hp:7000, imageEmoji:"🏔️🦕", category:"dino" },
-      { id:"Plesiosaur", name:"Plesiosaur", type:"water", stage:2, power:3000, hp:4000, imageEmoji:"🌊🦕", category:"dino" },
-      { id:"Mosasaur", name:"Mosasaur", type:"water", stage:2, power:4000, hp:2000, imageEmoji:"🌊🐊", category:"dino" },
-      { id:"Carnotaurus", name:"Carnotaurus", type:"wind", stage:2, power:3500, hp:2000, imageEmoji:"💨🐂", category:"dino" }
+      // Electric
+      { id:"Compsognathus", name:"Compsognathus", type:"electric", stage:1, power:250, hp:250, effect:"Stack multiple Compsognathus", imageEmoji:"⚡", category:"dino" },
+      { id:"Concavenator", name:"Concavenator", type:"electric", stage:1, power:700, hp:500, effect:"On GY: special Pack token", imageEmoji:"⚡", category:"dino" },
+      { id:"Dilophosaurus", name:"Dilophosaurus", type:"electric", stage:1, power:1000, hp:500, effect:"Poisonous: gain half poison damage", imageEmoji:"⚡", category:"dino" },
+      { id:"Herrerasaurus", name:"Herrerasaurus", type:"electric", stage:1, power:600, hp:800, effect:"Evolve from Baby Velociraptor: special Pack token", imageEmoji:"⚡", category:"dino" },
+      { id:"Velociraptor", name:"Velociraptor", type:"electric", stage:1, power:500, hp:500, effect:"Evolve from Baby Velociraptor: special Pack token", imageEmoji:"⚡", category:"dino" },
+      // Fire
+      { id:"Acrocanthosaurus", name:"Acrocanthosaurus", type:"fire", stage:2, power:2000, hp:3000, effect:"Bleed: destroy injured dino (once every 3 turns)", imageEmoji:"🔥", category:"dino" },
+      { id:"Allosaurus", name:"Allosaurus", type:"fire", stage:2, power:3000, hp:3000, effect:"Bleed: can attack twice per turn", imageEmoji:"🔥", category:"dino" },
+      { id:"Giganotosaurus", name:"Giganotosaurus", type:"fire", stage:2, power:3000, hp:7000, effect:"Bleed: double energy cost when attacking", imageEmoji:"🔥", category:"dino" },
+      { id:"Omega Rex", name:"Omega Rex", type:"fire", stage:3, power:3000, hp:3000, effect:"Bleed: if in starter, all opponent dinos bleed; discard energy or destroy", imageEmoji:"🔥", category:"dino" },
+      { id:"Tyrannosaurus Rex", name:"Tyrannosaurus Rex", type:"fire", stage:2, power:3000, hp:3000, effect:"Bleed: opponent cannot attack next BP (based on discarded energy)", imageEmoji:"🔥", category:"dino" },
+      // Grass
+      { id:"Chasmosaurus", name:"Chasmosaurus", type:"grass", stage:2, power:1500, hp:2000, effect:"Prevent bleed effects on your dinos; if starter, reflect bleed", imageEmoji:"🌿", category:"dino" },
+      { id:"Lokiceratops", name:"Lokiceratops", type:"grass", stage:2, power:1600, hp:1900, effect:"Gains power equal to HP loss", imageEmoji:"🌿", category:"dino" },
+      { id:"Nasutoceratops", name:"Nasutoceratops", type:"grass", stage:2, power:1700, hp:2400, effect:"Prevent poison effects on your dinos", imageEmoji:"🌿", category:"dino" },
+      { id:"Natures Revenge", name:"Natures Revenge", type:"grass", stage:3, power:4000, hp:4000, effect:"Immune to card effects & ailments", imageEmoji:"🌿", category:"dino" },
+      { id:"Styracosaurus", name:"Styracosaurus", type:"grass", stage:1, power:900, hp:1100, effect:"Prevent submerge on your dinos", imageEmoji:"🌿", category:"dino" },
+      { id:"Triceratops", name:"Triceratops", type:"grass", stage:2, power:4000, hp:4000, effect:"Immune to card effects & ailments", imageEmoji:"🌿", category:"dino" },
+      // Water
+      { id:"Baby Ichthyosaurus", name:"Baby Ichthyosaurus", type:"water", stage:1, power:100, hp:300, effect:"Once per turn: add energy to this card", imageEmoji:"💧", category:"dino" },
+      { id:"Baby Kronosaurus", name:"Baby Kronosaurus", type:"water", stage:1, power:2200, hp:4000, effect:"Remove energy from opponent dino; if starter, destroy random card from opponent hand", imageEmoji:"💧", category:"dino" },
+      { id:"Baby Megalodon", name:"Baby Megalodon", type:"water", stage:1, power:200, hp:2000, effect:"If starter: add water dino end of turn; if dino zone: remove energy or destroy", imageEmoji:"💧", category:"dino" },
+      { id:"Baby Mosaasur", name:"Baby Mosaasur", type:"water", stage:1, power:200, hp:1000, effect:"If submerged end of turn: add energy to any dino", imageEmoji:"💧", category:"dino" },
+      { id:"Baby Plesiosaur", name:"Baby Plesiosaur", type:"water", stage:1, power:250, hp:500, effect:"If starter: discard energy to search for research", imageEmoji:"💧", category:"dino" },
+      { id:"Dunkleosteus", name:"Dunkleosteus", type:"water", stage:2, power:1200, hp:4000, effect:"Once per turn: remove energy to add 'Whirlpool' to hand", imageEmoji:"💧", category:"dino" },
+      { id:"Ichthyosaurus", name:"Ichthyosaurus", type:"water", stage:2, power:1500, hp:1500, effect:"Submerge energy cost; end of turn: add Baby Ichthyosaurus", imageEmoji:"💧", category:"dino" },
+      { id:"Kronosaurus", name:"Kronosaurus", type:"water", stage:2, power:1200, hp:3500, effect:"Remove energy from opponent dino; if starter: destroy opponent card", imageEmoji:"💧", category:"dino" },
+      { id:"Megalodon", name:"Megalodon", type:"water", stage:2, power:2200, hp:4000, effect:"Remove energy from opponent dino; if starter: destroy opponent hand card", imageEmoji:"💧", category:"dino" },
+      { id:"Mosasaur", name:"Mosasaur", type:"water", stage:2, power:2000, hp:5000, effect:"Gain counters while submerged; remove counters to deal damage", imageEmoji:"💧", category:"dino" },
+      { id:"Plesiosaur", name:"Plesiosaur", type:"water", stage:2, power:2500, hp:1800, effect:"Attack: send 2 opponent cards to GY", imageEmoji:"💧", category:"dino" },
+      { id:"Spinosaurus", name:"Spinosaurus", type:"water", stage:2, power:2500, hp:5000, effect:"If submerged: submerge opponent dino; must stay submerged", imageEmoji:"💧", category:"dino" },
+      { id:"Wrath Of The Sea", name:"Wrath Of The Sea", type:"water", stage:3, power:3500, hp:2500, effect:"If starter: all dinos submerged; opponent can pay to surface", imageEmoji:"💧", category:"dino" },
+      // Existing ones for compatibility
+      { id:"Baby rex", name:"Baby rex", type:"fire", stage:1, power:1500, hp:2000, imageEmoji:"🔥", category:"dino" },
+      { id:"T-rex", name:"T-rex", type:"fire", stage:2, power:3000, hp:3500, imageEmoji:"🔥", category:"dino" },
+      { id:"Baby Triceratops", name:"Baby Triceratops", type:"grass", stage:1, power:2000, hp:2500, imageEmoji:"🌿", category:"dino" },
+      { id:"Baby Velociraptor", name:"Baby Velociraptor", type:"electric", stage:1, power:1000, hp:800, imageEmoji:"⚡", category:"dino" },
+      { id:"Baby Ankylosaurus", name:"Baby Ankylosaurus", type:"ground", stage:1, power:1500, hp:2500, imageEmoji:"🛡️", category:"dino" },
+      { id:"Ankylosaurus", name:"Ankylosaurus", type:"ground", stage:2, power:2000, hp:3500, imageEmoji:"🛡️", category:"dino" },
+      { id:"Baby Argentinosaurus", name:"Baby Argentinosaurus", type:"normal", stage:1, power:1500, hp:3000, imageEmoji:"🌿", category:"dino" },
+      { id:"Argentinosaurus", name:"Argentinosaurus", type:"normal", stage:2, power:3500, hp:7000, imageEmoji:"🌿", category:"dino" },
+      { id:"Carnotaurus", name:"Carnotaurus", type:"wind", stage:2, power:3500, hp:2000, imageEmoji:"💨", category:"dino" }
     ],
     moves: [
-      { id:"Tsunami", name:"Tsunami", type:"water", cost:1, effect:"carry over", imageEmoji:"🌊", category:"move" },
-      { id:"Lightning attack", name:"Lightning attack", type:"electric", cost:1, effect:"paralyze", imageEmoji:"⚡", category:"move" },
-      { id:"Meteor blast", name:"Meteor blast", type:"fire", cost:1, effect:"bonus", imageEmoji:"☄️", category:"move" },
-      { id:"Stomp", name:"Stomp", type:"normal", cost:1, effect:"direct", imageEmoji:"👣", category:"move" },
-      { id:"Rapid growth", name:"Rapid growth", type:"grass", cost:1, effect:"heal 500", imageEmoji:"🌱", category:"move" },
-      { id:"Phalanx", name:"Phalanx", type:"ground", cost:1, effect:"defense", imageEmoji:"🛡️", category:"move" }
+      { id:"Death Role", name:"Death Role", type:"water", cost:4, effect:"Destroy opponent dino ignoring defense", imageEmoji:"💀", category:"move" },
+      { id:"Drown", name:"Drown", type:"water", cost:2, effect:"If Predator X in GY, remove random card from opponent hand", imageEmoji:"💧", category:"move" },
+      { id:"Lightning Attack", name:"Lightning Attack", type:"electric", cost:1, effect:"Base damage + paralyze", imageEmoji:"⚡", category:"move" },
+      { id:"Lightning spear", name:"Lightning spear", type:"electric", cost:2, effect:"Attack twice this battle phase", imageEmoji:"⚡", category:"move" },
+      { id:"Overflow", name:"Overflow", type:"water", cost:5, effect:"Deal extra x1000 per card advantage", imageEmoji:"💧", category:"move" },
+      { id:"Quick bolt", name:"Quick bolt", type:"electric", cost:5, effect:"Dinos ≤1500 power attack 3 times", imageEmoji:"⚡", category:"move" },
+      { id:"Quick thunder", name:"Quick thunder", type:"electric", cost:3, effect:"Paralyze up to 3 dinos", imageEmoji:"⚡", category:"move" },
+      { id:"Thunder ball", name:"Thunder ball", type:"electric", cost:4, effect:"Sweep + paralyze adjacent", imageEmoji:"⚡", category:"move" },
+      { id:"Tsunami", name:"Tsunami", type:"water", cost:1, effect:"Carry over leftover damage", imageEmoji:"🌊", category:"move" },
+      { id:"Whirlpool", name:"Whirlpool", type:"water", cost:3, effect:"If Dunkleosteus, add energy to aqua dino", imageEmoji:"🌊", category:"move" }
     ],
     research: [
-      { id:"Palaeontology", name:"Palaeontology", effect:"search move", imageEmoji:"📜", category:"research" },
-      { id:"Dig site", name:"Dig site", effect:"add dino from deck", imageEmoji:"⛏️", category:"research" },
-      { id:"Abandoned laboratory", name:"Abandoned laboratory", effect:"energy revive", imageEmoji:"🧪", category:"research" }
+      { id:"Abandoned laboratory", name:"Abandoned laboratory", effect:"Stays on field; store energy to revive dino", imageEmoji:"🧪", category:"research" },
+      { id:"Dig site", name:"Dig site", effect:"Add a dino from deck to hand", imageEmoji:"⛏️", category:"research" },
+      { id:"Extinction", name:"Extinction", effect:"Destroy dinos from hand/field, add support cards", imageEmoji:"💀", category:"research" },
+      { id:"Laboratory", name:"Laboratory", effect:"Stays; store energy to hybrid dinos", imageEmoji:"🧪", category:"research" },
+      { id:"Palaeontology", name:"Palaeontology", effect:"Search deck for a move card", imageEmoji:"📜", category:"research" }
     ]
   };
   const ALL_CARDS = [...CARD_CATALOG.dinos, ...CARD_CATALOG.moves, ...CARD_CATALOG.research];
@@ -225,6 +246,7 @@
   function getSavedDeck(key) {
     let saved = localStorage.getItem(key);
     if(saved) return JSON.parse(saved);
+    // Default deck: first 15 cards (ensuring variety)
     return ALL_CARDS.slice(0, 15).map(c => ({ id: c.id, category: c.category }));
   }
   function saveDeck(key, deck) { localStorage.setItem(key, JSON.stringify(deck)); }
@@ -238,7 +260,7 @@
     ALL_CARDS.forEach(card => {
       let div = document.createElement("div");
       div.className = "editable-card";
-      div.innerHTML = `${card.imageEmoji} ${card.name}<br><span style="font-size:9px;">${card.category}</span>`;
+      div.innerHTML = `${card.imageEmoji} ${card.name}<br><span style="font-size:9px;">${card.category} ${card.power ? `⚡${card.power} ❤️${card.hp}` : ''}</span>`;
       div.onclick = () => {
         if(currentDeckCards.length >= 30) { alert("Max 30 cards"); return; }
         currentDeckCards.push({ id: card.id, category: card.category });
@@ -281,7 +303,7 @@
     loadDeckForEditing();
   }
 
-  // ---------- BATTLE (restored perfect layout) ----------
+  // ---------- BATTLE (full layout with HP display & images) ----------
   let battleState = null;
   function shuffle(arr) { for(let i=arr.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
 
@@ -432,6 +454,12 @@
     renderBattleUI();
   }
 
+  function getImagePath(cardName) {
+    // assumes images are in "images/" folder with exact card name + .png
+    // fallback to emoji if missing
+    return `images/${encodeURIComponent(cardName)}.png`;
+  }
+
   function renderBattleUI() {
     let container = document.getElementById("battleContainer");
     if(!battleState) { container.innerHTML = "<div style='text-align:center'>Start a match first</div>"; return; }
@@ -446,25 +474,26 @@
       let topRow = document.getElementById(`battleP${pid}TopRow`);
       let bottomRow = document.getElementById(`battleP${pid}BottomRow`);
       if(!topRow) continue;
-      topRow.innerHTML = `<div class="zone-card starter-zone"><div class="zone-label">⭐ STARTER</div><div class="card"><div class="card-img-placeholder">${pData.starterZone?.imageEmoji || "🥚"}</div>${pData.starterZone?.name || "None"}</div></div>`;
+      topRow.innerHTML = `<div class="zone-card starter-zone"><div class="zone-label">⭐ STARTER</div><div class="card"><img class="card-img" src="${getImagePath(pData.starterZone?.name || 'placeholder')}" alt="${pData.starterZone?.name || 'None'}" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2080%2080%22%3E%3Crect%20width%3D%2280%22%20height%3D%2280%22%20fill%3D%22%23c09a6b%22%2F%3E%3Ctext%20x%3D%2240%22%20y%3D%2245%22%20text-anchor%3D%22middle%22%20fill%3D%22black%22%3E🦴%3C%2Ftext%3E%3C%2Fsvg%3E';">${pData.starterZone?.name || "None"}<br>⚡${pData.starterZone?.power} ❤️${pData.starterZone?.hp}</div></div>`;
       for(let i=0;i<4;i++) {
         let d = pData.dinoZones[i];
+        let currentHp = d ? d.hp - (d.damage||0) : 0;
         let buttons = "";
         if(battleState.turn === pid && battleState.phase === 'battle' && d) buttons = `<div class="action-buttons"><button class="action-btn attack" onclick="declareAttack(${pid},${i})">⚔️ ATTACK</button></div>`;
         if(battleState.turn !== pid && battleState.phase === 'battle' && d) buttons = `<div class="action-buttons"><button class="action-btn defend" onclick="if(${pid===1?'battleState.p1':'battleState.p2'}.dinoZones[${i}].energyAttached>0){${pid===1?'battleState.p1':'battleState.p2'}.dinoZones[${i}].energyAttached--; alert('Defense prepared'); renderBattleUI();}">🛡️ DEFEND (use 1 energy)</button></div>`;
-        topRow.innerHTML += `<div class="zone-card dino-zone"><div class="zone-label">DINO ZONE</div><div class="card"><div class="card-img-placeholder">${d?.imageEmoji || "🦴"}</div>${d ? `${d.name}<br>⚡${d.power} ❤️${d.hp-(d.damage||0)}/${d.hp}<br>🔋${d.energyAttached}<div><button onclick="attachEnergyToDino(${pid},${i})">+energy</button></div>${buttons}` : "Empty"}</div></div>`;
+        topRow.innerHTML += `<div class="zone-card dino-zone"><div class="zone-label">DINO ZONE</div><div class="card"><img class="card-img" src="${getImagePath(d?.name || 'empty')}" alt="${d?.name || 'Empty'}" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2080%2080%22%3E%3Crect%20width%3D%2280%22%20height%3D%2280%22%20fill%3D%22%23c09a6b%22%2F%3E%3Ctext%20x%3D%2240%22%20y%3D%2245%22%20text-anchor%3D%22middle%22%20fill%3D%22black%22%3E🦴%3C%2Ftext%3E%3C%2Fsvg%3E';">${d ? `${d.name}<br>⚡${d.power} ❤️${currentHp}/${d.hp}<br>🔋${d.energyAttached}<div><button onclick="attachEnergyToDino(${pid},${i})">+energy</button></div>${buttons}` : "Empty"}</div></div>`;
       }
       bottomRow.innerHTML = `<div class="zone-card energy-zone"><div class="zone-label">⚡ ENERGY</div><div class="card">Bank: ${pData.energyBank}</div></div>`;
       for(let i=0;i<4;i++) {
         let r = pData.researchZones[i];
-        bottomRow.innerHTML += `<div class="zone-card research-zone"><div class="zone-label">RESEARCH</div><div class="card"><div class="card-img-placeholder">${r?.imageEmoji || "📘"}</div>${r?.name || "Empty"}</div></div>`;
+        bottomRow.innerHTML += `<div class="zone-card research-zone"><div class="zone-label">RESEARCH</div><div class="card"><img class="card-img" src="${getImagePath(r?.name || 'empty')}" alt="${r?.name || 'Empty'}" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2080%2080%22%3E%3Crect%20width%3D%2280%22%20height%3D%2280%22%20fill%3D%22%23c09a6b%22%2F%3E%3Ctext%20x%3D%2240%22%20y%3D%2245%22%20text-anchor%3D%22middle%22%20fill%3D%22black%22%3E📘%3C%2Ftext%3E%3C%2Fsvg%3E';">${r?.name || "Empty"}</div></div>`;
       }
       let handDiv = document.getElementById(`battleP${pid}Hand`);
       handDiv.innerHTML = "";
       pData.hand.forEach((card, idx) => {
         let cdiv = document.createElement("div");
         cdiv.className = "card";
-        cdiv.innerHTML = `<div class="card-img-placeholder">${card.imageEmoji || "🃏"}</div>${card.name}<br><span style="font-size:9px;">${card.category}</span>`;
+        cdiv.innerHTML = `<img class="card-img" src="${getImagePath(card.name)}" alt="${card.name}" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2080%2080%22%3E%3Crect%20width%3D%2280%22%20height%3D%2280%22%20fill%3D%22%23c09a6b%22%2F%3E%3Ctext%20x%3D%2240%22%20y%3D%2245%22%20text-anchor%3D%22middle%22%20fill%3D%22black%22%3E🃏%3C%2Ftext%3E%3C%2Fsvg%3E';">${card.name}<br><span style="font-size:9px;">${card.category}</span>`;
         cdiv.onclick = () => playBattleCardFromHand(pid, idx);
         handDiv.appendChild(cdiv);
       });
@@ -473,7 +502,6 @@
     document.getElementById("endTurnBattleBtn")?.addEventListener("click", () => endTurn());
   }
 
-  // Expose global functions for button calls
   window.attachEnergyToDino = attachEnergyToDino;
   window.declareAttack = declareAttack;
   window.addBattleEnergy = addBattleEnergy;
@@ -492,7 +520,6 @@
     document.getElementById("backToMenuFromBattle").onclick = () => showMainMenu();
   }
 
-  // Navigation
   function showMainMenu() { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("mainMenuPage").classList.add("active"); }
   function showDeckEditor() { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("deckEditorPage").classList.add("active"); initDeckEditor(); }
   function showBattlePage() { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("battlePage").classList.add("active"); initBattlePage(); }
