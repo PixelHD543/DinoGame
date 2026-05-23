@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Dino Duel TCG - Full Image Integration</title>
+  <title>Dino Duel TCG - Full Card Images, Fixed Grid</title>
   <style>
     * {
       box-sizing: border-box;
@@ -16,7 +16,7 @@
       padding: 20px;
       color: #f7f3d9;
     }
-    /* All sizes scaled up */
+    /* Pages */
     .page {
       display: none;
       max-width: 2000px;
@@ -34,85 +34,121 @@
     .menu-card { background: #1e2a1cdd; border-radius: 48px; padding: 50px; text-align: center; width: 400px; cursor: pointer; transition: 0.2s; border: 2px solid #d4a259; }
     .menu-card:hover { transform: scale(1.02); background: #2e3e2acc; }
     .menu-card h2 { margin: 0 0 20px; font-size: 2rem; color: #ffdd99; }
-    /* Deck editor */
+    /* Deck editor - full card images only */
     .deck-editor { display: flex; gap: 40px; flex-wrap: wrap; }
     .card-pool { flex: 2; background: #1f2a1cdd; border-radius: 48px; padding: 24px; }
     .deck-area { flex: 1.5; background: #2d2418dd; border-radius: 48px; padding: 24px; }
-    .card-list { display: flex; flex-wrap: wrap; gap: 20px; max-height: 800px; overflow-y: auto; }
+    .card-list { display: flex; flex-wrap: wrap; gap: 20px; max-height: 800px; overflow-y: auto; justify-content: flex-start; }
     .editable-card {
-      background: #fef0cf; color: #2c1a0e; border-radius: 28px; padding: 12px; width: 180px;
-      text-align: center; cursor: pointer; border: 2px solid #d49c3b;
-      display: flex; flex-direction: column; align-items: center;
+      background: #2d2418cc; border-radius: 20px; width: 180px; cursor: pointer;
+      border: 2px solid #dba14b; overflow: hidden; transition: 0.1s;
     }
     .editable-card img {
-      width: 140px; height: 140px; object-fit: contain; margin-bottom: 8px;
-      background: #c09a6b; border-radius: 16px;
+      width: 100%; height: auto; display: block;
     }
     .deck-slot {
-      background: #3e2e1e; border-radius: 28px; padding: 12px; margin-bottom: 12px;
-      display: flex; justify-content: space-between; align-items: center; font-size: 1.2rem;
+      background: #3e2e1e; border-radius: 20px; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 12px; padding: 8px;
+      border: 1px solid #dba14b;
     }
     .deck-slot img {
-      width: 60px; height: 60px; object-fit: contain; margin-right: 12px;
-      background: #c09a6b; border-radius: 12px;
+      width: 80px; height: auto; border-radius: 12px; background: #c09a6b;
     }
+    .deck-slot button { margin-left: auto; }
     button {
       background: #e6a53b; border: none; color: #1f2f0c; font-weight: bold;
       padding: 12px 24px; border-radius: 50px; cursor: pointer; font-size: 1rem;
     }
     .danger-btn { background: #aa3e1c; color: white; }
-    /* Battle layout - fixed size cards, images fill */
+    /* Battle layout - CSS Grid for 5 fixed columns */
     .player-board {
       background: #1e2a1cdd; border-radius: 48px; padding: 24px; margin-bottom: 48px;
       border: 2px solid #c4913a; box-shadow: inset 0 0 12px #00000044, 0 10px 20px black;
     }
     .field-grid { display: flex; flex-direction: column; gap: 24px; margin-bottom: 30px; }
-    .grid-row { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
-    .mirror-row { flex-direction: row-reverse; }
+    .grid-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(200px, 280px));
+      justify-content: center;
+      gap: 20px;
+    }
+    .mirror-row {
+      direction: rtl; /* visually mirrors the order for P2 */
+    }
+    .mirror-row > * { direction: ltr; } /* reset inner content direction */
     .zone-card {
-      background: #2d2418cc; border-radius: 32px; padding: 16px; width: 340px; min-height: 480px;
-      backdrop-filter: blur(4px); border: 2px solid #dba14b; display: flex; flex-direction: column;
-      align-items: center; box-shadow: 0 8px 16px black;
+      background: #4a2e1e; /* brown border background */
+      border-radius: 24px;
+      padding: 8px;
+      border: 3px solid #c97e3a;
+      box-shadow: 0 6px 12px black;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
     }
-    .starter-zone { background: #5e3a1fcc; border-left: 12px solid #ffb347; }
-    .energy-zone { background: #c9510ccc; border-left: 12px solid #ffdf80; }
-    .dino-zone { background: #4a2e1ecc; border-left: 12px solid #ff914d; }
-    .research-zone { background: #2d5f6ecc; border-left: 12px solid #6bcbff; }
-    .zone-label {
-      font-size: 1.2rem; background: #000000aa; border-radius: 60px;
-      padding: 6px 16px; margin-bottom: 16px; font-weight: bold; width: 100%; text-align: center;
+    .starter-zone { background: #5e3a1f; border-color: #ffb347; }
+    .energy-zone { background: #c9510c; border-color: #ffdf80; }
+    .dino-zone { background: #4a2e1e; border-color: #ff914d; }
+    .research-zone { background: #2d5f6e; border-color: #6bcbff; }
+    .card-image {
+      width: 100%;
+      aspect-ratio: 3 / 4; /* typical card proportion */
+      object-fit: cover;
+      display: block;
+      background: #c09a6b;
+      border-radius: 16px;
     }
-    .card {
-      background: #fef0cf; color: #2c1a0e; border-radius: 28px; padding: 12px 8px;
-      width: 100%; max-width: 280px; font-size: 1rem; font-weight: bold; text-align: center;
-      box-shadow: 4px 6px 12px black; border: 2px solid #f7c56e; cursor: pointer;
-      display: flex; flex-direction: column; align-items: center;
+    .card-stats {
+      background: #1f1a0fcc;
+      margin-top: 8px;
+      padding: 6px;
+      border-radius: 16px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: #ffefb9;
     }
-    .card-img {
-      width: 100%; height: auto; max-height: 200px; object-fit: contain; margin: 8px 0;
-      background: #c09a6b; border-radius: 20px; display: block;
-    }
-    .action-buttons { display: flex; gap: 16px; margin-top: 16px; justify-content: center; }
+    .card-stats span { background: #00000088; padding: 2px 8px; border-radius: 20px; }
+    .action-buttons { display: flex; gap: 8px; margin-top: 8px; justify-content: center; }
     .action-btn {
-      background: #3e2a1c; border: none; color: #ffeaac; font-size: 1rem;
-      padding: 8px 16px; border-radius: 40px; cursor: pointer; font-weight: bold;
+      background: #3e2a1c; border: none; color: #ffeaac; font-size: 0.8rem;
+      padding: 5px 12px; border-radius: 30px; cursor: pointer; font-weight: bold;
     }
     .action-btn.attack { background: #b64516; }
     .action-btn.defend { background: #2c6e2c; }
+    /* Hand area - horizontal scroll if needed */
     .hand-area {
-      background: #35281599; border-radius: 48px; padding: 24px; margin-top: 30px;
-      min-height: 240px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+      background: #35281599; border-radius: 48px; padding: 20px; margin-top: 30px;
+      overflow-x: auto; white-space: nowrap;
       border: 2px solid #e3b15a;
     }
+    .hand-container {
+      display: inline-flex;
+      gap: 16px;
+      padding: 8px;
+    }
     .hand-card {
-      background: #fef0cf; border-radius: 28px; padding: 8px; width: 180px;
-      text-align: center; cursor: pointer; border: 2px solid #f7c56e;
-      display: flex; flex-direction: column; align-items: center;
+      background: #2d2418cc;
+      border-radius: 20px;
+      width: 200px;
+      border: 2px solid #dba14b;
+      cursor: pointer;
+      display: inline-block;
+      vertical-align: top;
+      transition: 0.1s;
     }
     .hand-card img {
-      width: 120px; height: 120px; object-fit: contain; margin-bottom: 8px;
-      background: #c09a6b; border-radius: 16px;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      object-fit: cover;
+      border-radius: 16px;
+      display: block;
     }
+    .hand-card:hover { transform: scale(1.02); }
     .phase-bar {
       display: flex; gap: 24px; justify-content: center; margin: 20px 0;
       background: #1f1a0fcc; padding: 16px; border-radius: 80px;
@@ -134,12 +170,12 @@
       max-height: 200px; overflow-y: auto; font-size: 1rem; font-family: monospace;
     }
     @media (max-width: 1400px) {
-      .zone-card { width: 300px; min-height: 440px; }
-      .card-img { max-height: 160px; }
+      .grid-row { grid-template-columns: repeat(5, minmax(170px, 220px)); gap: 15px; }
+      .hand-card { width: 160px; }
     }
     @media (max-width: 1000px) {
-      .zone-card { width: 260px; min-height: 400px; }
-      .card-img { max-height: 140px; }
+      .grid-row { grid-template-columns: repeat(5, minmax(140px, 180px)); gap: 10px; }
+      .hand-card { width: 130px; }
     }
   </style>
 </head>
@@ -152,11 +188,11 @@
     <div class="menu-card" onclick="showBattlePage()"><h2>⚔️ BATTLE ARENA</h2><p>Load decks & duel</p></div>
   </div>
   <div style="background:#1f1a0fcc; border-radius: 48px; padding: 32px; margin-top: 50px;">
-    <h3 style="font-size: 1.8rem;">📖 How to use:</h3>
+    <h3 style="font-size: 1.8rem;">📖 Instructions</h3>
     <ul style="font-size: 1.2rem;">
-      <li><strong>Images:</strong> Place your card images in an <code>images/</code> folder with filenames exactly matching card names (e.g., <code>T-rex.png</code>). Missing images show a placeholder.</li>
-      <li><strong>Deck Editor:</strong> See image previews. Click to add/remove cards.</li>
-      <li><strong>Battle:</strong> Phase buttons forward only. Attack/Defend buttons appear.</li>
+      <li><strong>Images:</strong> Place full-card images in <code>images/</code> folder with exact card name (e.g., <code>T-rex.png</code>).</li>
+      <li><strong>Layout:</strong> 5 fixed columns (Starter + 4 Dinos). Hand cards are horizontal.</li>
+      <li><strong>Phase:</strong> Click phase button to advance (Main → Battle → End). No going back.</li>
       <li><strong>Type matchups:</strong> Water > Fire > Grass > Ground > Electric > Water (2x/0.5x).</li>
     </ul>
   </div>
@@ -194,7 +230,7 @@
 </div>
 
 <script>
-  // ---------- CARD DATABASE (same as before, all stats) ----------
+  // ---------- CARD DATABASE (full stats, kept for background) ----------
   const CARD_CATALOG = {
     dinos: [
       { id:"Compsognathus", name:"Compsognathus", type:"electric", stage:1, power:250, hp:250, effect:"Stack multiple", imageEmoji:"⚡", category:"dino" },
@@ -278,7 +314,6 @@
     return 1;
   }
 
-  // Helper for image path
   function getImagePath(cardName) {
     return `images/${encodeURIComponent(cardName)}.png`;
   }
@@ -291,7 +326,7 @@
   }
   function saveDeck(key, deck) { localStorage.setItem(key, JSON.stringify(deck)); }
 
-  // ---------- DECK EDITOR (with images) ----------
+  // ---------- DECK EDITOR (only images, no stats) ----------
   let currentEditingPlayer = "p1";
   let currentDeckCards = [];
 
@@ -301,7 +336,11 @@
     ALL_CARDS.forEach(card => {
       let div = document.createElement("div");
       div.className = "editable-card";
-      div.innerHTML = `<img src="${getImagePath(card.name)}" alt="${card.name}" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20140%20140%22%3E%3Crect%20width%3D%22140%22%20height%3D%22140%22%20fill%3D%22%23c09a6b%22%2F%3E%3Ctext%20x%3D%2270%22%20y%3D%2285%22%20text-anchor%3D%22middle%22%20fill%3D%22black%22%20font-size%3D%2250%22%3E${card.imageEmoji || '🃏'}%3C%2Ftext%3E%3C%2Fsvg%3E';">${card.name}<br><span style="font-size:0.8rem;">${card.category} ${card.power ? `⚡${card.power} ❤️${card.hp}` : ''}</span>`;
+      let img = document.createElement("img");
+      img.src = getImagePath(card.name);
+      img.alt = card.name;
+      img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 280'%3E%3Crect width='200' height='280' fill='%23c09a6b'/%3E%3Ctext x='100' y='150' text-anchor='middle' fill='black' font-size='40'%3E🃏%3C/text%3E%3C/svg%3E"; };
+      div.appendChild(img);
       div.onclick = () => {
         if(currentDeckCards.length >= 30) { alert("Max 30 cards"); return; }
         currentDeckCards.push({ id: card.id, category: card.category });
@@ -319,8 +358,17 @@
       if(!full) return;
       let slot = document.createElement("div");
       slot.className = "deck-slot";
-      slot.innerHTML = `<div style="display:flex; align-items:center;"><img src="${getImagePath(full.name)}" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2060%2060%22%3E%3Crect%20width%3D%2260%22%20height%3D%2260%22%20fill%3D%22%23c09a6b%22%2F%3E%3Ctext%20x%3D%2230%22%20y%3D%2240%22%20text-anchor%3D%22middle%22%20fill%3D%22black%22%20font-size%3D%2230%22%3E${full.imageEmoji || '🃏'}%3C%2Ftext%3E%3C%2Fsvg%3E';"> <span style="margin-left:12px;">${full.name}</span></div><button class="remove-card" data-idx="${idx}">❌</button>`;
-      slot.querySelector(".remove-card").onclick = () => { currentDeckCards.splice(idx,1); renderCurrentDeck(); };
+      let img = document.createElement("img");
+      img.src = getImagePath(full.name);
+      img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' fill='%23c09a6b'/%3E%3Ctext x='50' y='80' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
+      let nameSpan = document.createElement("span");
+      nameSpan.innerText = full.name;
+      let delBtn = document.createElement("button");
+      delBtn.innerText = "❌";
+      delBtn.onclick = () => { currentDeckCards.splice(idx,1); renderCurrentDeck(); };
+      slot.appendChild(img);
+      slot.appendChild(nameSpan);
+      slot.appendChild(delBtn);
       container.appendChild(slot);
     });
     document.getElementById("deckSize").innerText = currentDeckCards.length;
@@ -346,7 +394,7 @@
     loadDeckForEditing();
   }
 
-  // ---------- BATTLE (same perfect layout, images fill cards) ----------
+  // ---------- BATTLE (fixed grid, full images, stats overlay) ----------
   let battleState = null;
   function shuffle(arr) { for(let i=arr.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
 
@@ -501,9 +549,9 @@
   function renderBattleUI() {
     let container = document.getElementById("battleContainer");
     if(!battleState) { container.innerHTML = "<div style='text-align:center; font-size:2rem;'>Start a match first</div>"; return; }
-    let html = `<div class="player-board"><h3 style="font-size: 2rem;">🌙 OPPONENT (P2)</h3><div class="field-grid"><div class="grid-row mirror-row" id="battleP2TopRow"></div><div class="grid-row mirror-row" id="battleP2BottomRow"></div></div><div class="hand-area"><span style="font-size:1.2rem;">✋ HAND</span><div id="battleP2Hand"></div></div><div class="deck-grave-stack"><div class="stack-item">📖 DECK ${battleState.p2.deck.length}</div><div class="stack-item">💀 GRAVE ${battleState.p2.graveyard.length}</div><div class="stack-item">⚡ ENERGY: ${battleState.p2.energyBank} <button onclick="addBattleEnergy(2)">+1</button></div></div></div>`;
+    let html = `<div class="player-board"><h3 style="font-size: 2rem;">🌙 OPPONENT (P2)</h3><div class="field-grid"><div class="grid-row mirror-row" id="battleP2TopRow"></div><div class="grid-row mirror-row" id="battleP2BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP2Hand"></div></div><div class="deck-grave-stack"><div class="stack-item">📖 DECK ${battleState.p2.deck.length}</div><div class="stack-item">💀 GRAVE ${battleState.p2.graveyard.length}</div><div class="stack-item">⚡ ENERGY: ${battleState.p2.energyBank} <button onclick="addBattleEnergy(2)">+1</button></div></div></div>`;
     html += `<div style="background:#2d2418aa; border-radius:48px; margin:24px 0; padding:20px;text-align:center"><span style="font-size:1.2rem;">🌍 FIELD ZONE</span><div>None</div></div>`;
-    html += `<div class="player-board"><h3 style="font-size: 2rem;">🔥 YOU (P1)</h3><div class="field-grid"><div class="grid-row" id="battleP1TopRow"></div><div class="grid-row" id="battleP1BottomRow"></div></div><div class="hand-area"><span style="font-size:1.2rem;">✋ HAND</span><div id="battleP1Hand"></div></div><div class="deck-grave-stack"><div class="stack-item">📖 DECK ${battleState.p1.deck.length}</div><div class="stack-item">💀 GRAVE ${battleState.p1.graveyard.length}</div><div class="stack-item">⚡ ENERGY: ${battleState.p1.energyBank} <button onclick="addBattleEnergy(1)">+1</button></div></div></div>`;
+    html += `<div class="player-board"><h3 style="font-size: 2rem;">🔥 YOU (P1)</h3><div class="field-grid"><div class="grid-row" id="battleP1TopRow"></div><div class="grid-row" id="battleP1BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP1Hand"></div></div><div class="deck-grave-stack"><div class="stack-item">📖 DECK ${battleState.p1.deck.length}</div><div class="stack-item">💀 GRAVE ${battleState.p1.graveyard.length}</div><div class="stack-item">⚡ ENERGY: ${battleState.p1.energyBank} <button onclick="addBattleEnergy(1)">+1</button></div></div></div>`;
     html += `<div class="phase-bar"><div class="phase-btn active" id="phaseButton">⚔️ ${battleState.phase.toUpperCase()} PHASE (click to advance)</div><button id="endTurnBattleBtn">⏩ END TURN</button></div><div class="log">Turn ${battleState.turnCount} - Player ${battleState.turn} | Points: P1 ${battleState.p1.points} - P2 ${battleState.p2.points}</div>`;
     container.innerHTML = html;
 
@@ -514,7 +562,11 @@
       if(!topRow) continue;
       // Starter zone
       let starterImg = getImagePath(pData.starterZone?.name || 'placeholder');
-      topRow.innerHTML = `<div class="zone-card starter-zone"><div class="zone-label">⭐ STARTER</div><div class="card"><img class="card-img" src="${starterImg}" alt="${pData.starterZone?.name || 'None'}" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20280%20200%22%3E%3Crect%20width%3D%22280%22%20height%3D%22200%22%20fill%3D%22%23c09a6b%22%2F%3E%3Ctext%20x%3D%22140%22%20y%3D%22110%22%20text-anchor%3D%22middle%22%20fill%3D%22black%22%20font-size%3D%2260%22%3E🦴%3C%2Ftext%3E%3C%2Fsvg%3E';">${pData.starterZone?.name || "None"}<br>⚡${pData.starterZone?.power} ❤️${pData.starterZone?.hp}</div></div>`;
+      topRow.innerHTML = `
+        <div class="zone-card starter-zone">
+          <img class="card-image" src="${starterImg}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E⭐%3C/text%3E%3C/svg%3E'">
+          <div class="card-stats"><span>⚡${pData.starterZone?.power || 0}</span><span>❤️${pData.starterZone?.hp || 0}</span></div>
+        </div>`;
       // Dino zones
       for(let i=0;i<4;i++) {
         let d = pData.dinoZones[i];
@@ -523,25 +575,32 @@
         if(battleState.turn === pid && battleState.phase === 'battle' && d) buttons = `<div class="action-buttons"><button class="action-btn attack" onclick="declareAttack(${pid},${i})">⚔️ ATTACK</button></div>`;
         if(battleState.turn !== pid && battleState.phase === 'battle' && d) buttons = `<div class="action-buttons"><button class="action-btn defend" onclick="if(${pid===1?'battleState.p1':'battleState.p2'}.dinoZones[${i}].energyAttached>0){${pid===1?'battleState.p1':'battleState.p2'}.dinoZones[${i}].energyAttached--; alert('Defense prepared'); renderBattleUI();}">🛡️ DEFEND (use 1 energy)</button></div>`;
         let imgSrc = d ? getImagePath(d.name) : '';
-        topRow.innerHTML += `<div class="zone-card dino-zone"><div class="zone-label">DINO ZONE</div><div class="card">${d ? `<img class="card-img" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20280%20200%22%3E%3Crect%20width%3D%22280%22%20height%3D%22200%22%20fill%3D%22%23c09a6b%22%2F%3E%3Ctext%20x%3D%22140%22%20y%3D%22110%22%20text-anchor%3D%22middle%22%20fill%3D%22black%22%20font-size%3D%2260%22%3E${d.imageEmoji || '🦴'}%3C%2Ftext%3E%3C%2Fsvg%3E';">${d.name}<br>⚡${d.power} ❤️${currentHp}/${d.hp}<br>🔋${d.energyAttached}<div><button onclick="attachEnergyToDino(${pid},${i})">+energy</button></div>${buttons}` : "Empty"}</div></div>`;
+        topRow.innerHTML += `<div class="zone-card dino-zone">
+          ${d ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E🦴%3C/text%3E%3C/svg%3E'">
+          <div class="card-stats"><span>⚡${d.power}</span><span>❤️${currentHp}/${d.hp}</span><span>🔋${d.energyAttached}</span><button style="margin-left:auto;" onclick="attachEnergyToDino(${pid},${i})">+E</button></div>${buttons}` : `<div class="card-image" style="background:#5e3a2e; display:flex; align-items:center; justify-content:center;">Empty</div>`}
+        </div>`;
       }
-      // Energy & research
-      bottomRow.innerHTML = `<div class="zone-card energy-zone"><div class="zone-label">⚡ ENERGY</div><div class="card">Bank: ${pData.energyBank}</div></div>`;
+      // Energy & Research bottom row (5 cols)
+      bottomRow.innerHTML = `<div class="zone-card energy-zone"><div class="card-image" style="background:#c9510c; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">⚡ ${pData.energyBank}</div><div class="card-stats">Energy Bank</div></div>`;
       for(let i=0;i<4;i++) {
         let r = pData.researchZones[i];
         let imgSrc = r ? getImagePath(r.name) : '';
-        bottomRow.innerHTML += `<div class="zone-card research-zone"><div class="zone-label">RESEARCH</div><div class="card">${r ? `<img class="card-img" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20280%20200%22%3E%3Crect%20width%3D%22280%22%20height%3D%22200%22%20fill%3D%22%23c09a6b%22%2F%3E%3Ctext%20x%3D%22140%22%20y%3D%22110%22%20text-anchor%3D%22middle%22%20fill%3D%22black%22%20font-size%3D%2260%22%3E📘%3C%2Ftext%3E%3C%2Fsvg%3E';">${r.name}` : "Empty"}</div></div>`;
+        bottomRow.innerHTML += `<div class="zone-card research-zone">
+          ${r ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E📘%3C/text%3E%3C/svg%3E'"><div class="card-stats">${r.name}</div>` : `<div class="card-image" style="background:#2a4b55; display:flex; align-items:center; justify-content:center;">Empty</div>`}
+        </div>`;
       }
-      // Hand
-      let handDiv = document.getElementById(`battleP${pid}Hand`);
-      handDiv.innerHTML = "";
+      // Hand horizontal
+      let handContainer = document.getElementById(`battleP${pid}Hand`);
+      handContainer.innerHTML = "";
       pData.hand.forEach((card, idx) => {
-        let cdiv = document.createElement("div");
-        cdiv.className = "hand-card";
-        let imgSrc = getImagePath(card.name);
-        cdiv.innerHTML = `<img src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20120%20120%22%3E%3Crect%20width%3D%22120%22%20height%3D%22120%22%20fill%3D%22%23c09a6b%22%2F%3E%3Ctext%20x%3D%2260%22%20y%3D%2275%22%20text-anchor%3D%22middle%22%20fill%3D%22black%22%20font-size%3D%2240%22%3E${card.imageEmoji || '🃏'}%3C%2Ftext%3E%3C%2Fsvg%3E';">${card.name}<br><span style="font-size:0.8rem;">${card.category}</span>`;
-        cdiv.onclick = () => playBattleCardFromHand(pid, idx);
-        handDiv.appendChild(cdiv);
+        let cardDiv = document.createElement("div");
+        cardDiv.className = "hand-card";
+        let img = document.createElement("img");
+        img.src = getImagePath(card.name);
+        img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 280'%3E%3Crect width='200' height='280' fill='%23c09a6b'/%3E%3Ctext x='100' y='150' text-anchor='middle' fill='black' font-size='40'%3E🃏%3C/text%3E%3C/svg%3E"; };
+        cardDiv.appendChild(img);
+        cardDiv.onclick = () => playBattleCardFromHand(pid, idx);
+        handContainer.appendChild(cardDiv);
       });
     }
     document.getElementById("phaseButton")?.addEventListener("click", () => nextPhase());
