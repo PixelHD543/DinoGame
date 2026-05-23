@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Dino Duel TCG - Full Card Images, Fixed Grid</title>
+  <title>Dino Duel TCG - Hover Zoom & Card Effects</title>
   <style>
     * {
       box-sizing: border-box;
@@ -34,33 +34,35 @@
     .menu-card { background: #1e2a1cdd; border-radius: 48px; padding: 50px; text-align: center; width: 400px; cursor: pointer; transition: 0.2s; border: 2px solid #d4a259; }
     .menu-card:hover { transform: scale(1.02); background: #2e3e2acc; }
     .menu-card h2 { margin: 0 0 20px; font-size: 2rem; color: #ffdd99; }
-    /* Deck editor - full card images only */
+    /* Deck editor */
     .deck-editor { display: flex; gap: 40px; flex-wrap: wrap; }
     .card-pool { flex: 2; background: #1f2a1cdd; border-radius: 48px; padding: 24px; }
     .deck-area { flex: 1.5; background: #2d2418dd; border-radius: 48px; padding: 24px; }
     .card-list { display: flex; flex-wrap: wrap; gap: 20px; max-height: 800px; overflow-y: auto; justify-content: flex-start; }
-    .editable-card {
-      background: #2d2418cc; border-radius: 20px; width: 180px; cursor: pointer;
-      border: 2px solid #dba14b; overflow: hidden; transition: 0.1s;
+    .editable-card, .deck-slot, .hand-card, .zone-card .card-image {
+      cursor: pointer;
+      transition: transform 0.1s;
     }
-    .editable-card img {
-      width: 100%; height: auto; display: block;
+    /* Hover zoom modal */
+    .zoom-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
     }
-    .deck-slot {
-      background: #3e2e1e; border-radius: 20px; margin-bottom: 12px;
-      display: flex; align-items: center; gap: 12px; padding: 8px;
-      border: 1px solid #dba14b;
+    .zoom-modal img {
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 24px;
+      box-shadow: 0 0 50px gold;
     }
-    .deck-slot img {
-      width: 80px; height: auto; border-radius: 12px; background: #c09a6b;
-    }
-    .deck-slot button { margin-left: auto; }
-    button {
-      background: #e6a53b; border: none; color: #1f2f0c; font-weight: bold;
-      padding: 12px 24px; border-radius: 50px; cursor: pointer; font-size: 1rem;
-    }
-    .danger-btn { background: #aa3e1c; color: white; }
-    /* Battle layout - CSS Grid for 5 fixed columns */
+    /* Battle grid */
     .player-board {
       background: #1e2a1cdd; border-radius: 48px; padding: 24px; margin-bottom: 48px;
       border: 2px solid #c4913a; box-shadow: inset 0 0 12px #00000044, 0 10px 20px black;
@@ -72,12 +74,10 @@
       justify-content: center;
       gap: 20px;
     }
-    .mirror-row {
-      direction: rtl; /* visually mirrors the order for P2 */
-    }
-    .mirror-row > * { direction: ltr; } /* reset inner content direction */
+    .mirror-row { direction: rtl; }
+    .mirror-row > * { direction: ltr; }
     .zone-card {
-      background: #4a2e1e; /* brown border background */
+      background: #4a2e1e;
       border-radius: 24px;
       padding: 8px;
       border: 3px solid #c97e3a;
@@ -85,7 +85,6 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      position: relative;
     }
     .starter-zone { background: #5e3a1f; border-color: #ffb347; }
     .energy-zone { background: #c9510c; border-color: #ffdf80; }
@@ -93,7 +92,7 @@
     .research-zone { background: #2d5f6e; border-color: #6bcbff; }
     .card-image {
       width: 100%;
-      aspect-ratio: 3 / 4; /* typical card proportion */
+      aspect-ratio: 3 / 4;
       object-fit: cover;
       display: block;
       background: #c09a6b;
@@ -120,35 +119,22 @@
     }
     .action-btn.attack { background: #b64516; }
     .action-btn.defend { background: #2c6e2c; }
-    /* Hand area - horizontal scroll if needed */
     .hand-area {
       background: #35281599; border-radius: 48px; padding: 20px; margin-top: 30px;
       overflow-x: auto; white-space: nowrap;
       border: 2px solid #e3b15a;
     }
-    .hand-container {
-      display: inline-flex;
-      gap: 16px;
-      padding: 8px;
-    }
+    .hand-container { display: inline-flex; gap: 16px; padding: 8px; }
     .hand-card {
       background: #2d2418cc;
       border-radius: 20px;
       width: 200px;
       border: 2px solid #dba14b;
-      cursor: pointer;
       display: inline-block;
       vertical-align: top;
       transition: 0.1s;
     }
-    .hand-card img {
-      width: 100%;
-      aspect-ratio: 3 / 4;
-      object-fit: cover;
-      border-radius: 16px;
-      display: block;
-    }
-    .hand-card:hover { transform: scale(1.02); }
+    .hand-card img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 16px; display: block; }
     .phase-bar {
       display: flex; gap: 24px; justify-content: center; margin: 20px 0;
       background: #1f1a0fcc; padding: 16px; border-radius: 80px;
@@ -180,6 +166,11 @@
   </style>
 </head>
 <body>
+<!-- Hover Zoom Modal -->
+<div id="zoomModal" class="zoom-modal" onclick="closeZoom()">
+  <img id="zoomImage" src="" alt="Card enlarged">
+</div>
+
 <!-- MAIN MENU -->
 <div id="mainMenuPage" class="page active">
   <h1 style="text-align:center; font-size: 3rem;">🦖 DINO DUEL TCG 🦕</h1>
@@ -188,12 +179,12 @@
     <div class="menu-card" onclick="showBattlePage()"><h2>⚔️ BATTLE ARENA</h2><p>Load decks & duel</p></div>
   </div>
   <div style="background:#1f1a0fcc; border-radius: 48px; padding: 32px; margin-top: 50px;">
-    <h3 style="font-size: 1.8rem;">📖 Instructions</h3>
+    <h3 style="font-size: 1.8rem;">📖 How to use</h3>
     <ul style="font-size: 1.2rem;">
-      <li><strong>Images:</strong> Place full-card images in <code>images/</code> folder with exact card name (e.g., <code>T-rex.png</code>).</li>
-      <li><strong>Layout:</strong> 5 fixed columns (Starter + 4 Dinos). Hand cards are horizontal.</li>
-      <li><strong>Phase:</strong> Click phase button to advance (Main → Battle → End). No going back.</li>
-      <li><strong>Type matchups:</strong> Water > Fire > Grass > Ground > Electric > Water (2x/0.5x).</li>
+      <li><strong>Hover over any card</strong> → full-screen zoom.</li>
+      <li><strong>Research cards</strong> have working effects: Dig site, Palaeontology, Abandoned laboratory, Extinction.</li>
+      <li><strong>Phase buttons</strong> forward only. Attack/Defend buttons appear in battle phase.</li>
+      <li><strong>Type matchups</strong>: Water > Fire > Grass > Ground > Electric > Water (2x/0.5x).</li>
     </ul>
   </div>
 </div>
@@ -230,7 +221,7 @@
 </div>
 
 <script>
-  // ---------- CARD DATABASE (full stats, kept for background) ----------
+  // ---------- CARD DATABASE (with effects) ----------
   const CARD_CATALOG = {
     dinos: [
       { id:"Compsognathus", name:"Compsognathus", type:"electric", stage:1, power:250, hp:250, effect:"Stack multiple", imageEmoji:"⚡", category:"dino" },
@@ -285,11 +276,11 @@
       { id:"Whirlpool", name:"Whirlpool", type:"water", cost:3, effect:"If Dunkleosteus, add energy to aqua dino", imageEmoji:"🌊", category:"move" }
     ],
     research: [
-      { id:"Abandoned laboratory", name:"Abandoned laboratory", effect:"Stays on field; store energy to revive dino", imageEmoji:"🧪", category:"research" },
-      { id:"Dig site", name:"Dig site", effect:"Add a dino from deck to hand", imageEmoji:"⛏️", category:"research" },
-      { id:"Extinction", name:"Extinction", effect:"Destroy dinos from hand/field, add support cards", imageEmoji:"💀", category:"research" },
-      { id:"Laboratory", name:"Laboratory", effect:"Stays; store energy to hybrid dinos", imageEmoji:"🧪", category:"research" },
-      { id:"Palaeontology", name:"Palaeontology", effect:"Search deck for a move card", imageEmoji:"📜", category:"research" }
+      { id:"Abandoned laboratory", name:"Abandoned laboratory", effect:"Stays on field; store energy to revive dino", imageEmoji:"🧪", category:"research", isField: true },
+      { id:"Dig site", name:"Dig site", effect:"Add a dino from deck to hand", imageEmoji:"⛏️", category:"research", isField: false },
+      { id:"Extinction", name:"Extinction", effect:"Destroy dinos from hand/field, add support cards", imageEmoji:"💀", category:"research", isField: false },
+      { id:"Laboratory", name:"Laboratory", effect:"Stays; store energy to hybrid dinos", imageEmoji:"🧪", category:"research", isField: true },
+      { id:"Palaeontology", name:"Palaeontology", effect:"Search deck for a move card", imageEmoji:"📜", category:"research", isField: false }
     ]
   };
   const ALL_CARDS = [...CARD_CATALOG.dinos, ...CARD_CATALOG.moves, ...CARD_CATALOG.research];
@@ -318,6 +309,17 @@
     return `images/${encodeURIComponent(cardName)}.png`;
   }
 
+  // Hover zoom
+  function showZoom(imgSrc) {
+    const modal = document.getElementById("zoomModal");
+    const zoomImg = document.getElementById("zoomImage");
+    zoomImg.src = imgSrc;
+    modal.style.display = "flex";
+  }
+  function closeZoom() {
+    document.getElementById("zoomModal").style.display = "none";
+  }
+
   // Save/Load deck
   function getSavedDeck(key) {
     let saved = localStorage.getItem(key);
@@ -326,7 +328,127 @@
   }
   function saveDeck(key, deck) { localStorage.setItem(key, JSON.stringify(deck)); }
 
-  // ---------- DECK EDITOR (only images, no stats) ----------
+  // ---------- CARD EFFECTS (implementation) ----------
+  function applyResearchEffect(card, player, gameState) {
+    // card is the research card object (already placed on field)
+    if(card.name === "Dig site") {
+      let deck = gameState[`p${player}`].deck;
+      let dinosInDeck = deck.filter(c => c.category === "dino");
+      if(dinosInDeck.length === 0) { alert("No dinos in deck"); return false; }
+      let chosen = prompt("Search your deck for a dino. Type name (partial ok):");
+      let found = dinosInDeck.find(d => d.name.toLowerCase().includes(chosen.toLowerCase()));
+      if(found) {
+        let idx = deck.findIndex(c => c.id === found.id && c.category === "dino");
+        if(idx !== -1) {
+          gameState[`p${player}`].hand.push(deck[idx]);
+          deck.splice(idx,1);
+          alert(`Added ${found.name} to hand.`);
+          return true;
+        }
+      }
+      alert("Not found.");
+      return false;
+    } else if(card.name === "Palaeontology") {
+      let deck = gameState[`p${player}`].deck;
+      let movesInDeck = deck.filter(c => c.category === "move");
+      if(movesInDeck.length === 0) { alert("No move cards in deck"); return false; }
+      let chosen = prompt("Search your deck for a move card. Type name:");
+      let found = movesInDeck.find(m => m.name.toLowerCase().includes(chosen.toLowerCase()));
+      if(found) {
+        let idx = deck.findIndex(c => c.id === found.id && c.category === "move");
+        if(idx !== -1) {
+          gameState[`p${player}`].hand.push(deck[idx]);
+          deck.splice(idx,1);
+          alert(`Added ${found.name} to hand.`);
+          return true;
+        }
+      }
+      alert("Not found.");
+      return false;
+    } else if(card.name === "Extinction") {
+      let target = prompt("Destroy dinos from hand (hand) or field (field)?");
+      let playerData = gameState[`p${player}`];
+      if(target === "hand") {
+        if(playerData.hand.filter(c => c.category === "dino").length === 0) { alert("No dinos in hand"); return false; }
+        let count = parseInt(prompt("How many dinos to destroy from hand?"));
+        if(isNaN(count)) return false;
+        let destroyed = 0;
+        for(let i=playerData.hand.length-1; i>=0 && destroyed<count; i--) {
+          if(playerData.hand[i].category === "dino") {
+            playerData.graveyard.push(playerData.hand[i]);
+            playerData.hand.splice(i,1);
+            destroyed++;
+          }
+        }
+        alert(`Destroyed ${destroyed} dinos from hand.`);
+        // Add support cards: for now just add a random move
+        if(destroyed > 0) {
+          let moves = ALL_CARDS.filter(c => c.category === "move");
+          if(moves.length) {
+            let randomMove = {...moves[Math.floor(Math.random()*moves.length)]};
+            playerData.hand.push(randomMove);
+            alert(`Added ${randomMove.name} to hand as support.`);
+          }
+        }
+      } else if(target === "field") {
+        let dinoCount = playerData.dinoZones.filter(d => d !== null).length;
+        if(dinoCount === 0) { alert("No dinos on field"); return false; }
+        let count = parseInt(prompt(`How many dinos to destroy from field (max ${dinoCount})?`));
+        if(isNaN(count)) return false;
+        let destroyed = 0;
+        for(let i=0; i<playerData.dinoZones.length && destroyed<count; i++) {
+          if(playerData.dinoZones[i] !== null) {
+            playerData.graveyard.push(playerData.dinoZones[i]);
+            playerData.dinoZones[i] = null;
+            destroyed++;
+          }
+        }
+        alert(`Destroyed ${destroyed} dinos on field.`);
+        if(destroyed > 0) {
+          let moves = ALL_CARDS.filter(c => c.category === "move");
+          if(moves.length) {
+            let randomMove = {...moves[Math.floor(Math.random()*moves.length)]};
+            playerData.hand.push(randomMove);
+            alert(`Added ${randomMove.name} to hand as support.`);
+          }
+        }
+      }
+      return true;
+    } else if(card.name === "Abandoned laboratory") {
+      // This card stays on field; we need to store energy on it and allow revive.
+      // For simplicity, we add a property 'storedEnergy' to the card.
+      if(!card.storedEnergy) card.storedEnergy = 0;
+      let action = prompt("Add energy (add) or revive (revive)?");
+      if(action === "add") {
+        if(gameState[`p${player}`].energyBank > 0) {
+          gameState[`p${player}`].energyBank--;
+          card.storedEnergy++;
+          alert(`Laboratory now has ${card.storedEnergy} energy.`);
+        } else alert("No energy to store.");
+      } else if(action === "revive") {
+        let stage = parseInt(prompt("Enter evolution stage to revive (1,2,3):"));
+        if(!isNaN(stage) && card.storedEnergy >= stage) {
+          let graves = gameState[`p${player}`].graveyard;
+          let target = graves.find(d => d.category === "dino" && d.stage === stage);
+          if(target) {
+            let emptySlot = gameState[`p${player}`].dinoZones.findIndex(z => z === null);
+            if(emptySlot !== -1) {
+              let revived = {...target, damage:0, energyAttached:0};
+              gameState[`p${player}`].dinoZones[emptySlot] = revived;
+              let idx = graves.findIndex(g => g === target);
+              graves.splice(idx,1);
+              card.storedEnergy -= stage;
+              alert(`Revived ${target.name}.`);
+            } else alert("No free dino zone.");
+          } else alert("No dino of that stage in GY.");
+        } else alert("Not enough stored energy or invalid stage.");
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // ---------- DECK EDITOR ----------
   let currentEditingPlayer = "p1";
   let currentDeckCards = [];
 
@@ -340,6 +462,8 @@
       img.src = getImagePath(card.name);
       img.alt = card.name;
       img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 280'%3E%3Crect width='200' height='280' fill='%23c09a6b'/%3E%3Ctext x='100' y='150' text-anchor='middle' fill='black' font-size='40'%3E🃏%3C/text%3E%3C/svg%3E"; };
+      img.style.cursor = "pointer";
+      img.addEventListener("mouseenter", () => showZoom(img.src));
       div.appendChild(img);
       div.onclick = () => {
         if(currentDeckCards.length >= 30) { alert("Max 30 cards"); return; }
@@ -361,6 +485,7 @@
       let img = document.createElement("img");
       img.src = getImagePath(full.name);
       img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' fill='%23c09a6b'/%3E%3Ctext x='50' y='80' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
+      img.addEventListener("mouseenter", () => showZoom(img.src));
       let nameSpan = document.createElement("span");
       nameSpan.innerText = full.name;
       let delBtn = document.createElement("button");
@@ -394,7 +519,7 @@
     loadDeckForEditing();
   }
 
-  // ---------- BATTLE (fixed grid, full images, stats overlay) ----------
+  // ---------- BATTLE ----------
   let battleState = null;
   function shuffle(arr) { for(let i=arr.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
 
@@ -515,8 +640,18 @@
       if(battleState.phase !== 'main') return;
       let emptyRes = p.researchZones.findIndex(z=>!z);
       if(emptyRes !== -1) {
-        p.researchZones[emptyRes] = {...card};
+        // Place research card on field
+        let newCard = {...card};
+        p.researchZones[emptyRes] = newCard;
         p.hand.splice(handIdx,1);
+        // If it's a one-time effect (not field), apply immediately
+        if(!card.isField) {
+          applyResearchEffect(newCard, pid, battleState);
+          // Remove it after effect (since it's not a field card)
+          let idx = p.researchZones.findIndex(z => z === newCard);
+          if(idx !== -1) p.researchZones[idx] = null;
+        }
+        renderBattleUI();
       } else alert("No free research zone");
     } else if(card.category === 'move') {
       if(battleState.phase !== 'battle') return;
@@ -525,8 +660,8 @@
       let d = p.dinoZones[parseInt(targetIdx)];
       if(d) d.power += 500;
       p.hand.splice(handIdx,1);
+      renderBattleUI();
     }
-    renderBattleUI();
   }
 
   function nextPhase() {
@@ -562,9 +697,8 @@
       if(!topRow) continue;
       // Starter zone
       let starterImg = getImagePath(pData.starterZone?.name || 'placeholder');
-      topRow.innerHTML = `
-        <div class="zone-card starter-zone">
-          <img class="card-image" src="${starterImg}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E⭐%3C/text%3E%3C/svg%3E'">
+      topRow.innerHTML = `<div class="zone-card starter-zone">
+          <img class="card-image" src="${starterImg}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E⭐%3C/text%3E%3C/svg%3E'" onmouseenter="showZoom(this.src)">
           <div class="card-stats"><span>⚡${pData.starterZone?.power || 0}</span><span>❤️${pData.starterZone?.hp || 0}</span></div>
         </div>`;
       // Dino zones
@@ -576,7 +710,7 @@
         if(battleState.turn !== pid && battleState.phase === 'battle' && d) buttons = `<div class="action-buttons"><button class="action-btn defend" onclick="if(${pid===1?'battleState.p1':'battleState.p2'}.dinoZones[${i}].energyAttached>0){${pid===1?'battleState.p1':'battleState.p2'}.dinoZones[${i}].energyAttached--; alert('Defense prepared'); renderBattleUI();}">🛡️ DEFEND (use 1 energy)</button></div>`;
         let imgSrc = d ? getImagePath(d.name) : '';
         topRow.innerHTML += `<div class="zone-card dino-zone">
-          ${d ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E🦴%3C/text%3E%3C/svg%3E'">
+          ${d ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E🦴%3C/text%3E%3C/svg%3E'" onmouseenter="showZoom(this.src)">
           <div class="card-stats"><span>⚡${d.power}</span><span>❤️${currentHp}/${d.hp}</span><span>🔋${d.energyAttached}</span><button style="margin-left:auto;" onclick="attachEnergyToDino(${pid},${i})">+E</button></div>${buttons}` : `<div class="card-image" style="background:#5e3a2e; display:flex; align-items:center; justify-content:center;">Empty</div>`}
         </div>`;
       }
@@ -586,7 +720,7 @@
         let r = pData.researchZones[i];
         let imgSrc = r ? getImagePath(r.name) : '';
         bottomRow.innerHTML += `<div class="zone-card research-zone">
-          ${r ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E📘%3C/text%3E%3C/svg%3E'"><div class="card-stats">${r.name}</div>` : `<div class="card-image" style="background:#2a4b55; display:flex; align-items:center; justify-content:center;">Empty</div>`}
+          ${r ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E📘%3C/text%3E%3C/svg%3E'" onmouseenter="showZoom(this.src)"><div class="card-stats">${r.name}</div>` : `<div class="card-image" style="background:#2a4b55; display:flex; align-items:center; justify-content:center;">Empty</div>`}
         </div>`;
       }
       // Hand horizontal
@@ -598,6 +732,7 @@
         let img = document.createElement("img");
         img.src = getImagePath(card.name);
         img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 280'%3E%3Crect width='200' height='280' fill='%23c09a6b'/%3E%3Ctext x='100' y='150' text-anchor='middle' fill='black' font-size='40'%3E🃏%3C/text%3E%3C/svg%3E"; };
+        img.addEventListener("mouseenter", () => showZoom(img.src));
         cardDiv.appendChild(img);
         cardDiv.onclick = () => playBattleCardFromHand(pid, idx);
         handContainer.appendChild(cardDiv);
@@ -611,6 +746,8 @@
   window.declareAttack = declareAttack;
   window.addBattleEnergy = addBattleEnergy;
   window.playBattleCardFromHand = playBattleCardFromHand;
+  window.showZoom = showZoom;
+  window.closeZoom = closeZoom;
 
   function initBattlePage() {
     let p1Select = document.getElementById("p1DeckSelect");
