@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Dino Duel TCG - Final with Health Only & Setup Guide</title>
+  <title>Dino Duel TCG - Click to Enlarge & Search Effects</title>
   <style>
     * {
       box-sizing: border-box;
@@ -161,8 +161,12 @@
     .action-btn.attack { background: #b64516; }
     .action-btn.defend { background: #2c6e2c; }
     .hand-area {
-      background: #35281599; border-radius: 48px; padding: 20px; margin-top: 30px;
-      overflow-x: auto; white-space: nowrap;
+      background: #35281599;
+      border-radius: 48px;
+      padding: 20px;
+      margin-top: 30px;
+      overflow-x: auto;
+      white-space: nowrap;
       border: 2px solid #e3b15a;
     }
     .hand-container { display: inline-flex; gap: 16px; padding: 8px; }
@@ -173,7 +177,10 @@
       border: 2px solid #dba14b;
       display: inline-block;
       vertical-align: top;
+      cursor: pointer;
+      transition: 0.1s;
     }
+    .hand-card:hover { transform: scale(1.02); }
     .hand-card img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 16px; display: block; }
     .phase-bar {
       display: flex; gap: 24px; justify-content: center; margin: 20px 0;
@@ -216,6 +223,59 @@
       font-weight: bold;
       margin: 0 4px;
     }
+    /* Modals */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .modal-content {
+      background: #2d2418cc;
+      border-radius: 48px;
+      padding: 20px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow: auto;
+      text-align: center;
+    }
+    .modal img {
+      max-width: 80vw;
+      max-height: 70vh;
+      object-fit: contain;
+      border-radius: 24px;
+      margin-bottom: 20px;
+    }
+    .modal button {
+      margin: 10px;
+      font-size: 1.2rem;
+    }
+    .search-result-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      max-height: 60vh;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .search-card {
+      background: #2d2418cc;
+      border-radius: 20px;
+      width: 160px;
+      cursor: pointer;
+      border: 2px solid #dba14b;
+      transition: 0.1s;
+    }
+    .search-card:hover { transform: scale(1.02); border-color: gold; }
+    .search-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 16px; display: block; }
     @media (max-width: 1400px) {
       .grid-row { grid-template-columns: repeat(5, minmax(170px, 220px)); gap: 15px; }
       .hand-card { width: 160px; }
@@ -229,8 +289,24 @@
   </style>
 </head>
 <body>
-<div id="zoomModal" class="zoom-modal" onclick="closeZoom()">
-  <img id="zoomImage" src="" alt="Card enlarged">
+<!-- Zoom Modal (for viewing cards) -->
+<div id="zoomModal" class="modal">
+  <div class="modal-content">
+    <img id="zoomImage" src="" alt="Card enlarged">
+    <div>
+      <button id="playFromZoomBtn" style="display: none;">🎮 Play Card</button>
+      <button onclick="closeZoom()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Search Modal (for research effects) -->
+<div id="searchModal" class="modal">
+  <div class="modal-content">
+    <h3 id="searchTitle">Select a card</h3>
+    <div id="searchResults" class="search-result-grid"></div>
+    <button onclick="closeSearchModal()">Cancel</button>
+  </div>
 </div>
 
 <!-- MAIN MENU -->
@@ -239,20 +315,20 @@
   <div class="menu-buttons">
     <div class="menu-card" onclick="showDeckEditor()"><h2>📝 DECK EDITOR</h2><p>Create & save decks</p></div>
     <div class="menu-card" onclick="showBattlePage()"><h2>⚔️ BATTLE ARENA</h2><p>Load decks & duel</p></div>
-    <div class="menu-card" onclick="showRulesPage()"><h2>📖 RULES</h2><p>How to play & setup</p></div>
+    <div class="menu-card" onclick="showRulesPage()"><h2>📖 RULES</h2><p>How to play</p></div>
   </div>
   <div style="background:#1f1a0fcc; border-radius: 48px; padding: 32px; margin-top: 50px;">
     <h3 style="font-size: 1.8rem;">Quick Start</h3>
     <ul style="font-size: 1.2rem;">
-      <li><strong>Hover</strong> over any card → full-screen zoom.</li>
+      <li><strong>Click</strong> any card to enlarge it → then click "Play Card" if it's in hand.</li>
+      <li><strong>Research cards</strong> open a search window – pick the card you want.</li>
       <li><strong>Deck Editor</strong>: add cards (max 30), save for each player.</li>
       <li><strong>Battle</strong>: click DECK to draw, phase button to advance, attack during battle phase.</li>
-      <li><strong>Energy</strong> is shown as cards behind dinos. Attach energy by clicking +E.</li>
     </ul>
   </div>
 </div>
 
-<!-- RULES PAGE with Setup Instructions -->
+<!-- RULES PAGE (unchanged) -->
 <div id="rulesPage" class="page">
   <h2 style="font-size: 2.5rem;">📖 Game Rules & Setup</h2>
   <div class="rules-content">
@@ -267,32 +343,18 @@
     
     <h3>🃏 Card Types</h3>
     <ul>
-      <li><span class="example-card">Dino</span> – Your creatures. Each has <strong>Power</strong> (attack), <strong>HP</strong> (health), <strong>Stage</strong> (1-3), and <strong>Type</strong>. Special abilities (e.g., Bleed, Poison) are written on the card image.</li>
-      <li><span class="example-card">Move</span> – Played during battle phase for extra effects (e.g., Lightning Attack paralyzes).</li>
-      <li><span class="example-card">Research</span> – Played during main phase. Examples: <strong>Dig site</strong> (search deck for a Dino), <strong>Palaeontology</strong> (search for a Move), <strong>Abandoned laboratory</strong> (stores energy to revive from GY).</li>
-      <li><span class="example-card">Energy</span> – Represented as small cards stacked behind a Dino. Each energy can be discarded to boost attack (+1000) or used to defend (once per attack).</li>
+      <li><span class="example-card">Dino</span> – Your creatures. Each has <strong>Power</strong> (attack), <strong>HP</strong> (health), <strong>Stage</strong> (1-3), and <strong>Type</strong>. Special abilities are written on the card image.</li>
+      <li><span class="example-card">Move</span> – Played during battle phase for extra effects.</li>
+      <li><span class="example-card">Research</span> – Played during main phase. Examples: <strong>Dig site</strong> (search deck for a Dino), <strong>Palaeontology</strong> (search for a Move). Non‑field research cards go to graveyard after use.</li>
+      <li><span class="example-card">Energy</span> – Stacked behind a Dino. Discard to boost attack (+1000) or defend.</li>
     </ul>
 
-    <h3>⚡ Turn Structure (Step by Step)</h3>
+    <h3>⚡ Turn Structure</h3>
     <ol>
-      <li><strong>Start of turn</strong> – Click your <strong>DECK</strong> stack to draw 1 card (once per turn).</li>
-      <li><strong>Main Phase</strong> – You may (in any order):
-        <ul>
-          <li>Play <strong>Dinos</strong> from hand into empty Dino zones (only 1 Dino per turn).</li>
-          <li>Play <strong>Research</strong> cards (instant effects happen immediately, field cards stay).</li>
-          <li>Add energy from your bank to your Dinos (click <strong>+E</strong> on a Dino). You get one free energy per turn from the Energy Zone (click the +1 button).</li>
-        </ul>
-      </li>
-      <li><strong>Battle Phase</strong> – Click the phase button to enter Battle Phase. Then:
-        <ul>
-          <li>Click <strong>ATTACK</strong> on one of your Dinos.</li>
-          <li>Opponent's Dinos will glow: <span style="color:#00ff00;">Green</span> = can defend (has energy), <span style="color:#ff0000;">Red</span> = cannot defend.</li>
-          <li>Click the target Dino. You will be prompted to discard energies for extra damage.</li>
-          <li>Defender may choose to spend 1 energy to block (using their Dino's Power as defense).</li>
-          <li>Damage calculation: (Attacker Power × type matchup + 1000 per discarded energy) − Defender Power (if blocked). If HP ≤ 0, Dino is destroyed and attacker gets 1 point.</li>
-        </ul>
-      </li>
-      <li><strong>End Phase</strong> – Click phase button again, then <strong>END TURN</strong>. Play passes to the opponent.</li>
+      <li><strong>Start of turn</strong> – Click DECK to draw 1 card.</li>
+      <li><strong>Main Phase</strong> – Play Dinos (1 per turn), Research cards, attach energy (click +E).</li>
+      <li><strong>Battle Phase</strong> – Click ATTACK on a Dino → target opponent's Dino → choose energy discard → defender may block.</li>
+      <li><strong>End Phase</strong> – Click phase button twice, then END TURN.</li>
     </ol>
 
     <h3>🔥 Type Matchups</h3>
@@ -304,10 +366,6 @@
       <li><strong>Electric</strong> > <strong>Water</strong> – Electric weak to Ground</li>
       <li><strong>Normal</strong> and <strong>Wind</strong> have no strengths/weaknesses.</li>
     </ul>
-
-    <h3>📦 Example Play</h3>
-    <p>You have <span class="example-card">T-rex</span> (Fire, 3000 Power) attacking opponent's <span class="example-card">Triceratops</span> (Grass, 4000 HP). Fire > Grass → 2x damage. You discard 1 energy (+1000). Attack power = (3000×2)+1000 = 7000. Opponent uses 1 energy to defend (Triceratops Power 4000). Damage = 7000−4000 = 3000. Triceratops HP becomes 1000/4000.</p>
-    
     <button onclick="showMainMenu()" style="margin-top: 20px;">🔙 Back to Main Menu</button>
   </div>
 </div>
@@ -327,7 +385,7 @@
   <button class="nav-btn" onclick="showMainMenu()">🔙 Main Menu</button>
 </div>
 
-<!-- BATTLE PAGE (Health only, no power/energy numbers) -->
+<!-- BATTLE PAGE -->
 <div id="battlePage" class="page">
   <div style="display: flex; justify-content: space-between; align-items: center;">
     <h2 style="font-size: 2.5rem;">⚔️ BATTLE ARENA</h2>
@@ -344,7 +402,7 @@
 </div>
 
 <script>
-  // ---------- FULL CARD DATABASE (same as before, trimmed for brevity) ----------
+  // ---------- CARD DATABASE (full, as before) ----------
   const CARD_CATALOG = {
     dinos: [
       { id:"Compsognathus", name:"Compsognathus", type:"electric", stage:1, power:250, hp:250, effect:"Stack multiple", imageEmoji:"⚡", category:"dino" },
@@ -430,14 +488,63 @@
 
   function getImagePath(cardName) { return `images/${encodeURIComponent(cardName)}.png`; }
 
-  // Hover zoom
-  function showZoom(imgSrc) {
-    document.getElementById("zoomImage").src = imgSrc;
-    document.getElementById("zoomModal").style.display = "flex";
-  }
-  function closeZoom() { document.getElementById("zoomModal").style.display = "none"; }
+  // ---------- MODAL LOGIC ----------
+  let currentZoomCard = null; // { card, source, handIdx? }
+  let pendingPlayCallback = null;
 
-  // Deck storage
+  function showZoom(card, source, handIdx = null) {
+    currentZoomCard = { card, source, handIdx };
+    const modal = document.getElementById("zoomModal");
+    const zoomImg = document.getElementById("zoomImage");
+    zoomImg.src = getImagePath(card.name);
+    const playBtn = document.getElementById("playFromZoomBtn");
+    if (source === "hand") {
+      playBtn.style.display = "inline-block";
+      playBtn.onclick = () => {
+        closeZoom();
+        if (pendingPlayCallback) pendingPlayCallback(card, handIdx);
+        else playCardFromHandAfterZoom(card, handIdx);
+      };
+    } else {
+      playBtn.style.display = "none";
+    }
+    modal.style.display = "flex";
+  }
+
+  function closeZoom() {
+    document.getElementById("zoomModal").style.display = "none";
+    currentZoomCard = null;
+  }
+
+  // Search modal
+  let searchResolve = null;
+  function openSearchModal(title, cards, callback) {
+    const modal = document.getElementById("searchModal");
+    document.getElementById("searchTitle").innerText = title;
+    const container = document.getElementById("searchResults");
+    container.innerHTML = "";
+    cards.forEach(card => {
+      const cardDiv = document.createElement("div");
+      cardDiv.className = "search-card";
+      const img = document.createElement("img");
+      img.src = getImagePath(card.name);
+      img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 213'%3E%3Crect width='160' height='213' fill='%23c09a6b'/%3E%3Ctext x='80' y='110' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
+      cardDiv.appendChild(img);
+      cardDiv.onclick = () => {
+        closeSearchModal();
+        callback(card);
+      };
+      container.appendChild(cardDiv);
+    });
+    modal.style.display = "flex";
+    return new Promise(resolve => { searchResolve = resolve; });
+  }
+  function closeSearchModal() {
+    document.getElementById("searchModal").style.display = "none";
+    if (searchResolve) searchResolve(null);
+  }
+
+  // Save/Load deck
   function getSavedDeck(key) {
     let saved = localStorage.getItem(key);
     if(saved) return JSON.parse(saved);
@@ -445,7 +552,7 @@
   }
   function saveDeck(key, deck) { localStorage.setItem(key, JSON.stringify(deck)); }
 
-  // ---------- DECK EDITOR ----------
+  // ---------- DECK EDITOR (unchanged) ----------
   let currentEditingPlayer = "p1";
   let currentDeckCards = [];
   function renderCardPool() {
@@ -457,9 +564,12 @@
       let img = document.createElement("img");
       img.src = getImagePath(card.name);
       img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 280'%3E%3Crect width='200' height='280' fill='%23c09a6b'/%3E%3Ctext x='100' y='150' text-anchor='middle' fill='black' font-size='40'%3E🃏%3C/text%3E%3C/svg%3E"; };
-      img.addEventListener("mouseenter", () => showZoom(img.src));
+      img.addEventListener("click", (e) => { e.stopPropagation(); showZoom(card, "pool"); });
       div.appendChild(img);
-      div.onclick = () => { if(currentDeckCards.length<30) { currentDeckCards.push({ id: card.id, category: card.category }); renderCurrentDeck(); } else alert("Max 30 cards"); };
+      div.onclick = () => {
+        if(currentDeckCards.length < 30) { currentDeckCards.push({ id: card.id, category: card.category }); renderCurrentDeck(); }
+        else alert("Max 30 cards");
+      };
       container.appendChild(div);
     });
   }
@@ -474,7 +584,7 @@
       let img = document.createElement("img");
       img.src = getImagePath(full.name);
       img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' fill='%23c09a6b'/%3E%3Ctext x='50' y='80' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
-      img.addEventListener("mouseenter", () => showZoom(img.src));
+      img.addEventListener("click", (e) => { e.stopPropagation(); showZoom(full, "deck"); });
       let nameSpan = document.createElement("span");
       nameSpan.innerText = full.name;
       let delBtn = document.createElement("button");
@@ -501,7 +611,7 @@
     loadDeckForEditing();
   }
 
-  // ---------- BATTLE (Health only, no power/energy numbers) ----------
+  // ---------- BATTLE (with click-to-zoom and search effects) ----------
   let battleState = null;
   let pendingAttacker = null;
   function shuffle(arr) { for(let i=arr.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
@@ -617,7 +727,7 @@
     clearAttackGlow();
     pendingAttacker = null;
     renderBattleUI();
-    if(battleState.p1.points>=6 || battleState.p2.points>=6) alert("Game Over!");
+    if(battleState.p1.points>=6 || battleState.p2.points>=6) alert("Game Over! Press New Match.");
   }
 
   function executeDirectAttack(pid, attacker) {
@@ -642,6 +752,102 @@
     }
   }
 
+  // Research with search modal
+  async function applyResearchEffect(card, playerIdx) {
+    let p = battleState[`p${playerIdx}`];
+    if(card.name === "Dig site") {
+      let dinosInDeck = p.deck.filter(c => c.category === "dino");
+      if(dinosInDeck.length === 0) { alert("No dinos in deck"); return false; }
+      const selected = await new Promise(resolve => {
+        openSearchModal("Select a Dino to add to hand", dinosInDeck, resolve);
+      });
+      if(selected) {
+        let idx = p.deck.findIndex(c => c.id === selected.id && c.category === "dino");
+        if(idx !== -1) {
+          p.hand.push(p.deck[idx]);
+          p.deck.splice(idx, 1);
+          alert(`Added ${selected.name} to hand.`);
+          return true;
+        }
+      }
+      return false;
+    } else if(card.name === "Palaeontology") {
+      let movesInDeck = p.deck.filter(c => c.category === "move");
+      if(movesInDeck.length === 0) { alert("No move cards in deck"); return false; }
+      const selected = await new Promise(resolve => {
+        openSearchModal("Select a Move card to add to hand", movesInDeck, resolve);
+      });
+      if(selected) {
+        let idx = p.deck.findIndex(c => c.id === selected.id && c.category === "move");
+        if(idx !== -1) {
+          p.hand.push(p.deck[idx]);
+          p.deck.splice(idx, 1);
+          alert(`Added ${selected.name} to hand.`);
+          return true;
+        }
+      }
+      return false;
+    } else if(card.name === "Extinction") {
+      let target = prompt("Destroy dinos from hand (hand) or field (field)?");
+      if(target === "hand") {
+        let dinosInHand = p.hand.filter(c => c.category === "dino");
+        if(dinosInHand.length === 0) { alert("No dinos in hand"); return false; }
+        let count = parseInt(prompt(`How many dinos to destroy from hand (max ${dinosInHand.length})?`));
+        if(isNaN(count)) return false;
+        let destroyed = 0;
+        for(let i=p.hand.length-1; i>=0 && destroyed<count; i--) {
+          if(p.hand[i].category === "dino") {
+            p.graveyard.push(p.hand[i]);
+            p.hand.splice(i,1);
+            destroyed++;
+          }
+        }
+        alert(`Destroyed ${destroyed} dinos from hand.`);
+        if(destroyed > 0) {
+          let moves = ALL_CARDS.filter(c => c.category === "move");
+          if(moves.length) {
+            let randomMove = {...moves[Math.floor(Math.random()*moves.length)]};
+            p.hand.push(randomMove);
+            alert(`Added ${randomMove.name} to hand as support.`);
+          }
+        }
+        return true;
+      } else if(target === "field") {
+        let dinoCount = p.dinoZones.filter(d => d !== null).length;
+        if(dinoCount === 0) { alert("No dinos on field"); return false; }
+        let count = parseInt(prompt(`How many dinos to destroy from field (max ${dinoCount})?`));
+        if(isNaN(count)) return false;
+        let destroyed = 0;
+        for(let i=0; i<p.dinoZones.length && destroyed<count; i++) {
+          if(p.dinoZones[i] !== null) {
+            p.graveyard.push(p.dinoZones[i]);
+            p.dinoZones[i] = null;
+            destroyed++;
+          }
+        }
+        alert(`Destroyed ${destroyed} dinos on field.`);
+        if(destroyed > 0) {
+          let moves = ALL_CARDS.filter(c => c.category === "move");
+          if(moves.length) {
+            let randomMove = {...moves[Math.floor(Math.random()*moves.length)]};
+            p.hand.push(randomMove);
+            alert(`Added ${randomMove.name} to hand as support.`);
+          }
+        }
+        return true;
+      }
+      return false;
+    } else if(card.name === "Abandoned laboratory" || card.name === "Laboratory") {
+      // Field cards – stay on field, no immediate effect
+      return true;
+    }
+    return false;
+  }
+
+  function playCardFromHandAfterZoom(card, handIdx) {
+    playBattleCardFromHand(battleState.turn, handIdx);
+  }
+
   function playBattleCardFromHand(pid, handIdx) {
     if(battleState.turn !== pid) return;
     let p = battleState[`p${pid}`];
@@ -650,13 +856,33 @@
     if(card.category === 'dino') {
       if(battleState.phase !== 'main') return;
       let empty = p.dinoZones.findIndex(z=>!z);
-      if(empty !== -1) { p.dinoZones[empty] = {...card, damage:0, energyAttached:0, status:[]}; p.hand.splice(handIdx,1); }
-      else alert("No free dino zone");
+      if(empty !== -1) {
+        p.dinoZones[empty] = {...card, damage:0, energyAttached:0, status:[]};
+        p.hand.splice(handIdx,1);
+      } else alert("No free dino zone");
     } else if(card.category === 'research') {
       if(battleState.phase !== 'main') return;
       let emptyRes = p.researchZones.findIndex(z=>!z);
-      if(emptyRes !== -1) { p.researchZones[emptyRes] = {...card}; p.hand.splice(handIdx,1); if(!card.isField) { alert(`Research effect: ${card.name}`); let idx = p.researchZones.findIndex(z=>z===card); if(idx!==-1) p.researchZones[idx]=null; } renderBattleUI(); }
-      else alert("No free research zone");
+      if(emptyRes !== -1) {
+        let newCard = {...card};
+        p.researchZones[emptyRes] = newCard;
+        p.hand.splice(handIdx,1);
+        let isField = (card.name === "Abandoned laboratory" || card.name === "Laboratory");
+        if(!isField) {
+          // Show loading message, then apply async effect
+          (async () => {
+            let success = await applyResearchEffect(newCard, pid);
+            let idx = p.researchZones.findIndex(z => z === newCard);
+            if(idx !== -1) p.researchZones[idx] = null;
+            if(success) p.graveyard.push(newCard);
+            renderBattleUI();
+          })();
+          renderBattleUI(); // immediate render to remove card from hand
+        } else {
+          alert(`${card.name} placed on field. Use its ability via clicking on it later.`);
+          renderBattleUI();
+        }
+      } else alert("No free research zone");
     } else if(card.category === 'move') {
       if(battleState.phase !== 'battle') return;
       alert(`Move card ${card.name} used. +500 attack to one of your dinos.`);
@@ -664,8 +890,10 @@
       let d = p.dinoZones[parseInt(targetIdx)];
       if(d) d.power += 500;
       p.hand.splice(handIdx,1);
+      p.graveyard.push(card);
       renderBattleUI();
     }
+    renderBattleUI();
   }
 
   function nextPhase() {
@@ -702,7 +930,7 @@
       if(!topRow) continue;
       let starterImg = getImagePath(pData.starterZone?.name || 'placeholder');
       topRow.innerHTML = `<div class="zone-card starter-zone">
-          <img class="card-image" src="${starterImg}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E⭐%3C/text%3E%3C/svg%3E'" onmouseenter="showZoom(this.src)">
+          <img class="card-image" src="${starterImg}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E⭐%3C/text%3E%3C/svg%3E'" onclick="showZoom(pData.starterZone, 'field')">
           <div class="card-stats"><span>❤️${pData.starterZone?.hp || 0}</span></div>
         </div>`;
       for(let i=0;i<4;i++) {
@@ -715,7 +943,7 @@
         let energyCards = d && d.energyAttached>0 ? `<div class="energy-stack">${Array(d.energyAttached).fill('<div class="energy-card"></div>').join('')}</div>` : "";
         topRow.innerHTML += `<div class="zone-card dino-zone" id="dinoZone_${pid}_${i}">
           ${d ? `<div class="dino-card-container">
-            <img class="card-image" id="dinoImg_${pid}_${i}" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E🦴%3C/text%3E%3C/svg%3E'" onmouseenter="showZoom(this.src)">
+            <img class="card-image" id="dinoImg_${pid}_${i}" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E🦴%3C/text%3E%3C/svg%3E'" onclick="showZoom(d, 'field')">
             ${energyCards}
             <div class="card-stats"><span>❤️${currentHp}/${d.hp}</span><button style="margin-left:auto;" onclick="attachEnergyToDino(${pid},${i})">+E</button></div>
             ${buttons}
@@ -727,7 +955,7 @@
         let r = pData.researchZones[i];
         let imgSrc = r ? getImagePath(r.name) : '';
         bottomRow.innerHTML += `<div class="zone-card research-zone">
-          ${r ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E📘%3C/text%3E%3C/svg%3E'" onmouseenter="showZoom(this.src)"><div class="card-stats">${r.name}</div>` : `<div class="card-image" style="background:#2a4b55; display:flex; align-items:center; justify-content:center;">Empty</div>`}
+          ${r ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='220' text-anchor='middle' fill='black' font-size='60'%3E📘%3C/text%3E%3C/svg%3E'" onclick="showZoom(r, 'field')"><div class="card-stats">${r.name}</div>` : `<div class="card-image" style="background:#2a4b55; display:flex; align-items:center; justify-content:center;">Empty</div>`}
         </div>`;
       }
       let handContainer = document.getElementById(`battleP${pid}Hand`);
@@ -738,9 +966,8 @@
         let img = document.createElement("img");
         img.src = getImagePath(card.name);
         img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 280'%3E%3Crect width='200' height='280' fill='%23c09a6b'/%3E%3Ctext x='100' y='150' text-anchor='middle' fill='black' font-size='40'%3E🃏%3C/text%3E%3C/svg%3E"; };
-        img.addEventListener("mouseenter", () => showZoom(img.src));
+        img.addEventListener("click", (e) => { e.stopPropagation(); showZoom(card, "hand", idx); });
         cardDiv.appendChild(img);
-        cardDiv.onclick = () => playBattleCardFromHand(pid, idx);
         handContainer.appendChild(cardDiv);
       });
     }
