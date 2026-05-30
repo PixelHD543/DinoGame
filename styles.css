@@ -1,3 +1,295 @@
+* { box-sizing: border-box; user-select: none; }
+
+body {
+  background: linear-gradient(145deg, #1a3a2a 0%, #0a1f12 100%);
+  font-family: 'Segoe UI', Roboto, 'Trebuchet MS', sans-serif;
+  margin: 0;
+  padding: 20px;
+  color: #f7f3d9;
+}
+
+/* Pages */
+.page {
+  display: none;
+  max-width: 2000px;
+  margin: 0 auto;
+  background: #2c2116cc;
+  border-radius: 80px;
+  backdrop-filter: blur(4px);
+  padding: 40px;
+  box-shadow: 0 30px 50px rgba(0,0,0,0.6);
+  border: 4px solid #e2b13b;
+}
+.page.active { display: block; }
+
+/* Menu */
+.menu-buttons { display: flex; justify-content: center; gap: 60px; flex-wrap: wrap; margin: 80px 0; }
+.menu-card {
+  background: #1e2a1cdd; border-radius: 48px; padding: 50px; text-align: center;
+  width: 400px; cursor: pointer; transition: 0.2s; border: 2px solid #d4a259;
+}
+.menu-card:hover { transform: scale(1.02); background: #2e3e2acc; }
+.menu-card h2 { margin: 0 0 20px; font-size: 2rem; color: #ffdd99; }
+
+/* Deck editor */
+.deck-editor { display: flex; gap: 40px; flex-wrap: wrap; }
+.card-pool { flex: 2; background: #1f2a1cdd; border-radius: 48px; padding: 24px; }
+.deck-area { flex: 1.5; background: #2d2418dd; border-radius: 48px; padding: 24px; }
+.search-bar { margin-bottom: 16px; display: flex; gap: 10px; }
+.search-bar input { flex: 1; padding: 10px; border-radius: 40px; border: none; font-size: 1rem; background: #fef0cf; color: #2c1a0e; }
+.card-list { display: flex; flex-wrap: wrap; gap: 20px; max-height: 600px; overflow-y: auto; justify-content: flex-start; }
+.editable-card {
+  background: #2d2418cc; border-radius: 20px; width: 180px; cursor: pointer;
+  border: 2px solid #dba14b; overflow: hidden; transition: 0.1s;
+}
+.editable-card:hover { transform: scale(1.02); filter: drop-shadow(0 0 8px gold); }
+.editable-card img { width: 100%; height: auto; display: block; }
+.deck-slot {
+  background: #3e2e1e; border-radius: 20px; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid #dba14b;
+}
+.deck-slot img { width: 60px; height: auto; border-radius: 12px; background: #c09a6b; cursor: pointer; transition: 0.1s; }
+.deck-slot img:hover { transform: scale(1.05); filter: drop-shadow(0 0 4px gold); }
+.deck-slot button { margin-left: auto; }
+button {
+  background: #e6a53b; border: none; color: #1f2f0c; font-weight: bold;
+  padding: 8px 16px; border-radius: 50px; cursor: pointer; font-size: 0.9rem;
+  transition: 0.1s;
+}
+button:hover { background: #f0b050; transform: scale(1.02); }
+.danger-btn { background: #aa3e1c; color: white; }
+.danger-btn:hover { background: #cc4a2a; }
+
+/* Battle layout */
+.player-board {
+  background: #1e2a1cdd; border-radius: 48px; padding: 24px; margin-bottom: 48px;
+  border: 2px solid #c4913a; box-shadow: inset 0 0 12px #00000044, 0 10px 20px black;
+}
+.field-grid { display: flex; flex-direction: column; gap: 24px; margin-bottom: 30px; }
+.grid-row { display: grid; grid-template-columns: repeat(5, minmax(200px, 280px)); justify-content: center; gap: 20px; }
+.mirror-row { direction: rtl; }
+.mirror-row > * { direction: ltr; }
+
+/* Zone cards */
+.zone-card {
+  background: #4a2e1e;
+  border-radius: 24px;
+  padding: 8px;
+  border: 3px solid #c97e3a;
+  box-shadow: 0 6px 12px black;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.zone-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px black; }
+
+/* Glow effects */
+.targetable-glow { box-shadow: 0 0 0 4px #00ff00, 0 0 0 8px #00aa00, 0 0 15px #00ff00; cursor: pointer; }
+.cannot-defend-glow { box-shadow: 0 0 0 4px #ff0000, 0 0 0 8px #aa0000, 0 0 15px #ff0000; cursor: pointer; }
+
+/* Ailment visual borders */
+.poisoned { border-color: #8B00FF; box-shadow: 0 0 0 2px #8B00FF; }
+.bleeding { border-color: #FF0000; box-shadow: 0 0 0 2px #FF0000; }
+.paralyzed { border-color: #FFFF00; box-shadow: 0 0 0 2px #FFFF00; }
+.submerged { border-color: #00BFFF; box-shadow: 0 0 0 2px #00BFFF; opacity: 0.9; }
+.fortified { border-color: #C0C0C0; box-shadow: 0 0 0 2px #C0C0C0; }
+
+/* Starter zone */
+.starter-zone { background: #5e3a1f; border-color: #ffb347; cursor: pointer; }
+.dino-zone { background: #4a2e1e; border-color: #ff914d; position: relative; }
+.research-zone { background: #2d5f6e; border-color: #6bcbff; }
+
+/* Card image */
+.card-image {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  display: block;
+  background: #c09a6b;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+.card-image:active { transform: scale(0.98); }
+
+/* Energy stack */
+.dino-card-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.energy-stack {
+  position: absolute;
+  bottom: 10px;
+  right: -15px;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 6px;
+  z-index: 1;
+  pointer-events: none;
+}
+.energy-card {
+  width: 50px;
+  height: 38px;
+  background: radial-gradient(circle at 30% 20%, #ffd966, #e6a800);
+  border-radius: 8px;
+  border: 1px solid #ffefb9;
+  box-shadow: -3px 3px 6px black;
+}
+.energy-card:nth-child(1) { transform: translateX(4px) translateY(0px); }
+.energy-card:nth-child(2) { transform: translateX(6px) translateY(-10px); }
+.energy-card:nth-child(3) { transform: translateX(8px) translateY(-20px); }
+.energy-card:nth-child(4) { transform: translateX(10px) translateY(-30px); }
+.energy-card:nth-child(5) { transform: translateX(12px) translateY(-40px); }
+
+/* Stats area */
+.card-stats {
+  background: #1f1a0fcc;
+  margin-top: 8px;
+  padding: 6px;
+  border-radius: 16px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  text-align: center;
+  color: #ffefb9;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  z-index: 2;
+  position: relative;
+}
+.card-stats span { background: #00000088; padding: 2px 8px; border-radius: 20px; }
+.card-stats button {
+  background: #c97e3a;
+  padding: 2px 8px;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+/* Action buttons */
+.action-buttons { display: flex; gap: 8px; margin-top: 8px; justify-content: center; flex-wrap: wrap; z-index: 2; position: relative; }
+.action-btn {
+  background: #3e2a1c; border: none; color: #ffeaac; font-size: 0.8rem; padding: 5px 12px;
+  border-radius: 30px; cursor: pointer; font-weight: bold;
+}
+.action-btn.attack { background: #b64516; }
+.action-btn.evolve { background: #6a4e2e; }
+.action-btn:active { transform: scale(0.96); }
+
+/* Hand area */
+.hand-area {
+  background: #35281599;
+  border-radius: 48px;
+  padding: 20px;
+  margin-top: 30px;
+  overflow-x: auto;
+  white-space: nowrap;
+  border: 2px solid #e3b15a;
+}
+.hand-container { display: inline-flex; gap: 16px; padding: 8px; }
+.hand-card {
+  background: #2d2418cc;
+  border-radius: 20px;
+  width: 200px;
+  border: 2px solid #dba14b;
+  display: inline-block;
+  vertical-align: top;
+  cursor: pointer;
+  transition: 0.1s;
+}
+.hand-card:hover { transform: scale(1.02) translateY(-6px); filter: drop-shadow(0 0 10px gold); }
+.hand-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 16px; display: block; }
+
+/* Phase bar */
+.phase-bar { display: flex; gap: 24px; justify-content: center; margin: 20px 0; background: #1f1a0fcc; padding: 16px; border-radius: 80px; }
+.phase-btn {
+  background: #3e2a1c; color: #ffeaac; border: 2px solid #d4a259;
+  padding: 12px 36px; border-radius: 60px; font-weight: bold; cursor: pointer; font-size: 1.2rem;
+}
+.phase-btn.active { background: #e6a53b; color: #1f2f0c; border-color: #ffdd88; box-shadow: 0 0 16px gold; }
+
+/* Deck and grave */
+.deck-grave-stack {
+  display: flex;
+  gap: 20px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.stack-item {
+  background: #1f1a0fcc; border-radius: 40px; padding: 10px 20px;
+  text-align: center; cursor: pointer; border: 2px solid #b87c3a; min-width: 160px;
+  font-size: 1rem;
+}
+
+/* Energy pile */
+.energy-pile {
+  background: #2d2418aa;
+  border-radius: 40px;
+  padding: 12px;
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.energy-pile-item {
+  background: radial-gradient(circle at 30% 20%, #ffd966, #e6a800);
+  width: 70px;
+  padding: 6px;
+  border-radius: 16px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: bold;
+  border: 1px solid gold;
+}
+.energy-pile-item:hover { transform: scale(1.05); background: #ffcc44; box-shadow: 0 0 12px gold; }
+
+/* Log */
+.log { background: #0f0f0fcc; border-radius: 32px; padding: 20px; max-height: 200px; overflow-y: auto; font-size: 1rem; font-family: monospace; margin-top: 20px; }
+
+/* Modals */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  z-index: 10000;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+.modal-content {
+  background: #2d2418cc;
+  border-radius: 48px;
+  padding: 20px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  text-align: center;
+}
+.modal img { max-width: 80vw; max-height: 60vh; object-fit: contain; border-radius: 24px; margin-bottom: 20px; }
+.effect-text { background: #1f1a0fcc; padding: 12px; border-radius: 24px; margin-top: 12px; font-size: 1rem; max-width: 80vw; }
+
+/* Search result cards */
+.search-result-grid, .gy-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; max-height: 60vh; overflow-y: auto; padding: 16px; }
+.search-card, .gy-card {
+  background: #2d2418cc; border-radius: 20px; width: 160px; cursor: pointer;
+  border: 2px solid #dba14b; transition: 0.1s; padding: 12px; text-align: center;
+}
+.search-card:hover, .gy-card:hover { transform: scale(1.02); border-color: gold; box-shadow: 0 0 12px gold; }
+.search-card img, .gy-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 16px; display: block; }
+
+/* Rules page */
+.rules-content { max-height: 70vh; overflow-y: auto; padding: 20px; background: #1f1a0fcc; border-radius: 48px; line-height: 1.5; }
+.rules-content h3 { color: #ffdd99; margin-top: 20px; }
+
 /* Campaign Mode */
 .level-grid {
   display: flex;
@@ -38,3 +330,17 @@
 .craft-btn { background: #6a4e2e; margin-top: 5px; }
 .craft-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 #campaignBattleContainer { margin-top: 20px; }
+
+/* Campaign editor modal */
+#campaignDeckModal .deck-editor {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .grid-row { grid-template-columns: repeat(5, minmax(170px, 220px)); gap: 15px; }
+  .hand-card { width: 160px; }
+  .energy-card { width: 40px; height: 30px; }
+  .energy-pile-item { width: 55px; }
+}
