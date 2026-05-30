@@ -76,6 +76,9 @@ export function createEnergyPile() {
 }
 
 export function getEvolutionStage(dinoName) {
-  const normalized = dinoName.trim();
-  return EVOLUTION_MAP[normalized] || null;
+   // Only Stage 1 can evolve
+  if (dino.stage !== 1) return null;
+  // Find the first Stage 2 dino with the same type
+  const next = ALL_CARDS.find(c => c.category === 'dino' && c.stage === 2 && c.type === dino.type);
+  return next ? next.name : null;
 }
