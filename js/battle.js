@@ -7,7 +7,7 @@ let pendingAttacker = null;
 let gameLog = [];
 let addLog = (msg) => { gameLog.unshift(msg); if(gameLog.length>20) gameLog.pop(); updateLogUI(); };
 let updateLogUI = () => { let logDiv = document.getElementById("gameLog"); if(logDiv) logDiv.innerHTML = gameLog.map(l=>`🦖 ${l}`).join('<br>'); };
-let renderBattleUI = null; // set from main
+let renderBattleUI = null;
 
 export function setRenderUI(renderFn) { renderBattleUI = renderFn; }
 
@@ -197,12 +197,17 @@ function clearAttackGlow() {
 }
 
 export function attemptEvolution(pid, zoneIdx) {
-  if(battleState.turn !== pid || battleState.phase !== 'main') {
-    addLog("Can only evolve during your Main Phase.");
+  console.log(`Evolution attempt by Player ${pid}, zone ${zoneIdx}`);
+  if(battleState.turn !== pid) {
+    addLog("Not your turn.");
+    return;
+  }
+  if(battleState.phase !== 'main') {
+    addLog("You can only evolve during Main Phase.");
     return;
   }
   if(battleState.evolutionUsedThisTurn) {
-    addLog("You can only evolve once per turn.");
+    addLog("You already evolved once this turn.");
     return;
   }
   let dino = battleState[`p${pid}`].dinoZones[zoneIdx];
@@ -210,13 +215,15 @@ export function attemptEvolution(pid, zoneIdx) {
     addLog("No dino in that zone.");
     return;
   }
+  console.log(`Current dino: ${dino.name}`);
   let nextName = getEvolutionStage(dino.name);
-  console.log(`Evolution check: ${dino.name} -> ${nextName}`);
+  console.log(`Evolution map lookup: ${dino.name} -> ${nextName}`);
   if(!nextName) {
-    addLog(`${dino.name} cannot evolve further (no evolution defined).`);
+    addLog(`${dino.name} cannot evolve (no evolution defined).`);
     return;
   }
   let handIndex = battleState[`p${pid}`].hand.findIndex(c => c.name === nextName && c.category === 'dino');
+  console.log(`Looking for ${nextName} in hand: found at index ${handIndex}`);
   if(handIndex === -1) {
     addLog(`You need ${nextName} in your hand to evolve.`);
     return;
@@ -447,3 +454,76 @@ export function showGY(pid) {
   });
   document.getElementById("gyModal").style.display = "flex";
 }
+
+// ==================== RENDER FUNCTION (FULL) ====================
+export function renderBattleUI() {
+  let container = document.getElementById("battleContainer");
+  if(!battleState) { container.innerHTML = "<div style='text-align:center; font-size:2rem;'>Start a match first</div>"; return; }
+  let html = `<div class="player-board"><h3>🤖 AI (Player 2)</h3><div class="field-grid"><div class="grid-row mirror-row" id="battleP2TopRow"></div><div class="grid-row mirror-row" id="battleP2BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP2Hand"></div></div><div class="deck-grave-stack"><div class="stack-item" onclick="window.showGY(2)">💀 GRAVEYARD (${battleState.p2.graveyard.length})</div><div class="stack-item">📖 DECK ${battleState.p2.deck.length}</div></div><div class="energy-pile" id="energyPile2"></div></div>`;
+  html += `<div style="background:#2d2418aa; border-radius:48px; margin:24px 0; padding:20px;text-align:center"><span>🌍 FIELD ZONE</span><div>None</div></div>`;
+  html += `<div class="player-board"><h3>🔥 YOU (Player 1)</h3><div class="field-grid"><div class="grid-row" id="battleP1TopRow"></div><div class="grid-row" id="battleP1BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP1Hand"></div></div><div class="deck-grave-stack"><div class="stack-item" onclick="window.showGY(1)">💀 GRAVEYARD (${battleState.p1.graveyard.length})</div><div class="stack-item" onclick="window.drawBattleCard(1)">📖 DECK ${battleState.p1.deck.length}</div></div><div class="energy-pile" id="energyPile1"></div></div>`;
+  html += `<div class="phase-bar"><div class="phase-btn active" id="phaseButton">⚔️ ${battleState.phase.toUpperCase()} PHASE (click to advance)</div><button id="endTurnBattleBtn">⏩ END TURN</button></div><div class="log" id="gameLog"></div>`;
+  container.innerHTML = html;
+  updateLogUI();
+
+  for(let pid of [1,2]) {
+    let pData = battleState[`p${pid}`];
+    let topRow = document.getElementById(`battleP${pid}TopRow`);
+    let bottomRow = document.getElementById(`battleP${pid}BottomRow`);
+    if(!topRow) continue;
+    let starterImg = getImagePath(pData.starterZone?.name || 'placeholder');
+    topRow.innerHTML = `<div class="zone-card starter-zone" onclick="window.moveStarterToField(${pid})"><img class="card-image" src="${starterImg}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E⭐%3C/text%3E%3C/svg%3E'" onclick="event.stopPropagation(); window.showZoom(pData.starterZone, 'field')"><div class="card-stats"><span>❤️${pData.starterZone?.hp || 0}</span></div></div>`;
+    for(let i=0;i<4;i++) {
+      let d = pData.dinoZones[i];
+      let currentHp = d ? d.hp - (d.damage||0) : 0;
+      let buttons = "";
+      if(battleState.turn === pid && battleState.phase === 'battle' && d && !(d.ailments && d.ailments.includes('paralyzed'))) buttons += `<button class="action-btn attack" onclick="window.startAttackSelection(${pid},${i})">⚔️ ATTACK</button>`;
+      if(battleState.turn === pid && battleState.phase === 'main' && d) {
+        buttons += `<button class="action-btn evolve" onclick="window.attemptEvolution(${pid},${i})">🔄 EVOLVE</button>`;
+        if(!battleState.usedSwap) buttons += `<button class="action-btn" onclick="window.swapStarterWithField(${pid},${i})">🔄 SWAP STARTER</button>`;
+      }
+      let imgSrc = d ? getImagePath(d.name) : '';
+      let energyCards = d && d.energyAttached ? d.energyAttached.map(()=>`<div class="energy-card"></div>`).join('') : "";
+      let ailmentClass = d?.ailments ? (d.ailments.includes('poison')?"poisoned": d.ailments.includes('bleed')?"bleeding": d.ailments.includes('paralyzed')?"paralyzed": d.ailments.includes('submerged')?"submerged":"") : "";
+      topRow.innerHTML += `<div class="zone-card dino-zone ${ailmentClass}" id="dinoZone_${pid}_${i}">
+        ${d ? `<div class="dino-card-container"><div class="status-icons">${d.ailments ? (d.ailments.includes('poison')?"💜 ": d.ailments.includes('bleed')?"❤️‍🩹 ": d.ailments.includes('paralyzed')?"💛 ": d.ailments.includes('submerged')?"💙 ":"") : ""}</div><img class="card-image" id="dinoImg_${pid}_${i}" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E${d.name}%3C/text%3E%3C/svg%3E'" onclick="window.showZoom(d, 'field')"><div class="energy-stack">${energyCards}</div><div class="card-stats"><span>❤️${currentHp}/${d.hp}</span><button style="margin-left:auto;" onclick="window.attachSelectedEnergyToDino(${pid},${i})">+E</button></div><div class="action-buttons">${buttons}</div></div>` : `<div class="card-image" style="background:#5e3a2e; display:flex; align-items:center; justify-content:center;">Empty</div>`}
+      </div>`;
+    }
+    bottomRow.innerHTML = `<div class="zone-card energy-zone"><div class="card-image" style="background:#c9510c; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">⚡ ENERGY PILE</div><div class="card-stats">Click an energy, then a dino</div></div>`;
+    for(let i=0;i<4;i++) {
+      let r = pData.researchZones[i];
+      let imgSrc = r ? getImagePath(r.name) : '';
+      bottomRow.innerHTML += `<div class="zone-card research-zone">${r ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E${r.name}%3C/text%3E%3C/svg%3E'" onclick="window.showZoom(r, 'field')"><div class="card-stats">${r.name}</div>` : `<div class="card-image" style="background:#2a4b55; display:flex; align-items:center; justify-content:center;">Empty</div>`}</div>`;
+    }
+    let energyPileDiv = document.getElementById(`energyPile${pid}`);
+    energyPileDiv.innerHTML = "";
+    pData.energyPile.forEach((energy, idx) => {
+      let engDiv = document.createElement("div");
+      engDiv.className = "energy-pile-item";
+      engDiv.innerText = energy.name;
+      engDiv.onclick = () => selectEnergyFromPile(pid, idx);
+      energyPileDiv.appendChild(engDiv);
+    });
+    let handContainer = document.getElementById(`battleP${pid}Hand`);
+    handContainer.innerHTML = "";
+    pData.hand.forEach((card, idx) => {
+      let cardDiv = document.createElement("div"); cardDiv.className = "hand-card";
+      let img = document.createElement("img"); img.src = getImagePath(card.name);
+      img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 280'%3E%3Crect width='200' height='280' fill='%23c09a6b'/%3E%3Ctext x='100' y='150' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
+      img.addEventListener("click", (e) => { e.stopPropagation(); window.showZoom(card, "hand", idx); });
+      cardDiv.appendChild(img); handContainer.appendChild(cardDiv);
+    });
+  }
+  document.getElementById("phaseButton")?.addEventListener("click", nextPhase);
+  document.getElementById("endTurnBattleBtn")?.addEventListener("click", endTurn);
+}
+
+// Expose needed functions globally for onclick handlers
+window.startAttackSelection = startAttackSelection;
+window.attemptEvolution = attemptEvolution;
+window.swapStarterWithField = swapStarterWithField;
+window.moveStarterToField = moveStarterToField;
+window.attachSelectedEnergyToDino = attachSelectedEnergyToDino;
+window.drawBattleCard = drawBattleCard;
+window.showGY = showGY;
+window.showZoom = (card, source, handIdx) => { if (window.showZoomExternal) window.showZoomExternal(card, source, handIdx); };
