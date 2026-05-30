@@ -1,4 +1,4 @@
-import { ALL_CARDS } from './cardData.js';
+import { ENERGY_TYPES, EVOLUTION_MAP } from './constants.js';
 
 export function shuffle(arr) {
   for(let i=arr.length-1;i>0;i--){
@@ -13,19 +13,16 @@ export function getImagePath(cardName) {
 }
 
 export function getTypeMultiplier(attackerType, defenderType) {
-  const typeEffectiveness = {
+  const eff = {
     water: { strong: "fire", weak: "electric" },
     fire: { strong: "grass", weak: "water" },
     grass: { strong: "ground", weak: "fire" },
     ground: { strong: "electric", weak: "grass" },
-    electric: { strong: "water", weak: "ground" },
-    normal: { strong: null, weak: null },
-    wind: { strong: null, weak: null }
+    electric: { strong: "water", weak: "ground" }
   };
   if (!attackerType || !defenderType) return 1;
-  const eff = typeEffectiveness[attackerType];
-  if (eff && eff.strong === defenderType) return 2;
-  if (eff && eff.weak === defenderType) return 0.5;
+  if (eff[attackerType]?.strong === defenderType) return 2;
+  if (eff[attackerType]?.weak === defenderType) return 0.5;
   return 1;
 }
 
@@ -68,8 +65,17 @@ export function processAilments(dino, phase, addLog) {
   }
 }
 
-export function createEnergyPile(ENERGY_TYPES, createEnergyCard, shuffle) {
+export function createEnergyCard(type) {
+  return { id:`${type}Energy`, name:`${type} Energy`, category:"energy", energyType:type };
+}
+
+export function createEnergyPile() {
   let pile = [];
   for(let i=0;i<2;i++) ENERGY_TYPES.forEach(t => pile.push(createEnergyCard(t)));
   return shuffle(pile);
+}
+
+export function getEvolutionStage(dinoName) {
+  const normalized = dinoName.trim();
+  return EVOLUTION_MAP[normalized] || null;
 }
