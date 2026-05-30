@@ -7,9 +7,6 @@ let pendingAttacker = null;
 let gameLog = [];
 let addLog = (msg) => { gameLog.unshift(msg); if(gameLog.length>20) gameLog.pop(); updateLogUI(); };
 let updateLogUI = () => { let logDiv = document.getElementById("gameLog"); if(logDiv) logDiv.innerHTML = gameLog.map(l=>`🦖 ${l}`).join('<br>'); };
-let renderBattleUI = null;
-
-export function setRenderUI(renderFn) { renderBattleUI = renderFn; }
 
 export async function startMatch(p1DeckRef, p2DeckRef) {
   function expandDeck(refs) {
@@ -30,7 +27,7 @@ export async function startMatch(p1DeckRef, p2DeckRef) {
   for(let pid of [1,2]){ let p = battleState[`p${pid}`]; for(let i=0;i<6 && p.deck.length;i++) p.hand.push(p.deck.pop()); }
   await selectStarterForPlayer(1);
   await selectStarterForPlayer(2);
-  if(renderBattleUI) renderBattleUI();
+  renderBattleUI();
   addLog("Match started. Player 1's turn. Click DECK to draw.");
 }
 
@@ -86,7 +83,7 @@ export function drawBattleCard(pid) {
   if(p.deck.length === 0) return false;
   p.hand.push(p.deck.pop());
   battleState.drawnThisTurn = true;
-  if(renderBattleUI) renderBattleUI();
+  renderBattleUI();
   return true;
 }
 
@@ -109,7 +106,7 @@ export function attachSelectedEnergyToDino(pid, zoneIdx) {
   dino.energyAttached.push(energyCard);
   addLog(`Attached ${energyCard.name} to ${dino.name}.`);
   battleState.selectedEnergy = null;
-  if(renderBattleUI) renderBattleUI();
+  renderBattleUI();
 }
 
 export function startAttackSelection(pid, zoneIdx) {
@@ -169,7 +166,7 @@ function executeAttack(defenderPid, defenderZoneIdx) {
   }
   clearAttackGlow();
   pendingAttacker = null;
-  if(renderBattleUI) renderBattleUI();
+  renderBattleUI();
   if(battleState.p1.points>=6 || battleState.p2.points>=6) {
     alert(`Game Over! Player ${battleState.p1.points>=6 ? 1 : 2} wins.`);
     startMatch(getSavedDeck(document.getElementById("p1DeckSelect").value), getSavedDeck(document.getElementById("p2DeckSelect").value));
@@ -186,7 +183,7 @@ function executeDirectAttack(pid, attacker) {
   addLog(`Direct attack deals ${damage} damage! +1 point.`);
   clearAttackGlow();
   pendingAttacker = null;
-  if(renderBattleUI) renderBattleUI();
+  renderBattleUI();
 }
 
 function clearAttackGlow() {
@@ -234,7 +231,7 @@ export function attemptEvolution(pid, zoneIdx) {
   battleState[`p${pid}`].hand.splice(handIndex,1);
   battleState.evolutionUsedThisTurn = true;
   addLog(`${dino.name} evolved into ${nextCard.name}!`);
-  if(renderBattleUI) renderBattleUI();
+  renderBattleUI();
 }
 
 export function swapStarterWithField(pid, zoneIdx) {
@@ -246,7 +243,7 @@ export function swapStarterWithField(pid, zoneIdx) {
   battleState[`p${pid}`].starterZone = {...fieldDino, damage:0, energyAttached:[], ailments: fieldDino.ailments || [], ailmentTurns: fieldDino.ailmentTurns || {}};
   battleState.usedSwap = true;
   addLog(`Swapped ${fieldDino.name} with starter.`);
-  if(renderBattleUI) renderBattleUI();
+  renderBattleUI();
 }
 
 export function moveStarterToField(pid) {
@@ -263,7 +260,7 @@ export function moveStarterToField(pid) {
   p.starterZone = null;
   battleState.starterMovedThisTurn = true;
   addLog(`Moved ${p.dinoZones[emptySlot].name} from starter zone to field.`);
-  if(renderBattleUI) renderBattleUI();
+  renderBattleUI();
 }
 
 export function playBattleCardFromHand(pid, handIdx) {
@@ -297,8 +294,8 @@ export function playBattleCardFromHand(pid, handIdx) {
         let idx = p.researchZones.findIndex(z => z === newCard);
         if(idx !== -1) p.researchZones[idx] = null;
         p.graveyard.push(newCard);
-        if(renderBattleUI) renderBattleUI();
-      } else { addLog(`${card.name} placed on field.`); if(renderBattleUI) renderBattleUI(); }
+        renderBattleUI();
+      } else { addLog(`${card.name} placed on field.`); renderBattleUI(); }
     } else alert("No free research zone");
   } else if(card.category === 'move') {
     if(battleState.phase !== 'battle') return;
@@ -310,16 +307,16 @@ export function playBattleCardFromHand(pid, handIdx) {
     } else { let targetIdx = prompt("Your dino zone (0-3) to give +500 power:"); let d = p.dinoZones[parseInt(targetIdx)]; if(d) d.power += 500; }
     p.hand.splice(handIdx,1);
     p.graveyard.push(card);
-    if(renderBattleUI) renderBattleUI();
+    renderBattleUI();
   }
-  if(renderBattleUI) renderBattleUI();
+  renderBattleUI();
 }
 
 export function nextPhase() {
   if(battleState.phase === 'main') battleState.phase = 'battle';
   else if(battleState.phase === 'battle') battleState.phase = 'end';
   else if(battleState.phase === 'end') endTurn();
-  if(renderBattleUI) renderBattleUI();
+  renderBattleUI();
 }
 
 function endTurn() {
@@ -331,7 +328,7 @@ function endTurn() {
     battleState.starterMovedThisTurn = false;
     battleState.phase = 'main';
     battleState.selectedEnergy = null;
-    if(renderBattleUI) renderBattleUI();
+    renderBattleUI();
     addLog("AI's turn.");
     setTimeout(() => aiTurn(), 500);
   } else {
@@ -342,7 +339,7 @@ function endTurn() {
     battleState.starterMovedThisTurn = false;
     battleState.phase = 'main';
     battleState.selectedEnergy = null;
-    if(renderBattleUI) renderBattleUI();
+    renderBattleUI();
     addLog("Your turn. Click DECK to draw.");
   }
 }
@@ -355,7 +352,7 @@ async function aiTurn() {
     battleState.p2.hand.push(battleState.p2.deck.pop());
     battleState.drawnThisTurn = true;
     addLog("AI draws a card.");
-    if(renderBattleUI) renderBattleUI();
+    renderBattleUI();
   }
   if(battleState.p2.energyPile.length > 0) {
     let targetDino = battleState.p2.dinoZones.find(d => d !== null);
@@ -364,7 +361,7 @@ async function aiTurn() {
       if(!targetDino.energyAttached) targetDino.energyAttached = [];
       targetDino.energyAttached.push(energy);
       addLog(`AI attached ${energy.name} to ${targetDino.name}.`);
-      if(renderBattleUI) renderBattleUI();
+      renderBattleUI();
     }
   }
   let handDino = battleState.p2.hand.find(c => c.category === 'dino' && c.stage === 1);
@@ -375,7 +372,7 @@ async function aiTurn() {
       let idx = battleState.p2.hand.findIndex(c => c === handDino);
       battleState.p2.hand.splice(idx,1);
       addLog(`AI played ${handDino.name}.`);
-      if(renderBattleUI) renderBattleUI();
+      renderBattleUI();
     }
   }
   if(!battleState.evolutionUsedThisTurn) {
@@ -392,7 +389,7 @@ async function aiTurn() {
             battleState.p2.hand.splice(idx,1);
             battleState.evolutionUsedThisTurn = true;
             addLog(`AI evolved into ${nextCard.name}.`);
-            if(renderBattleUI) renderBattleUI();
+            renderBattleUI();
             break;
           }
         }
@@ -400,7 +397,7 @@ async function aiTurn() {
     }
   }
   battleState.phase = 'battle';
-  if(renderBattleUI) renderBattleUI();
+  renderBattleUI();
   await new Promise(r => setTimeout(r, 500));
   for(let i=0;i<4;i++) {
     let attacker = battleState.p2.dinoZones[i];
@@ -432,7 +429,7 @@ async function aiTurn() {
           battleState.p2.points++;
           addLog(`${defender.name} destroyed! AI gains a point.`);
         }
-        if(renderBattleUI) renderBattleUI();
+        renderBattleUI();
         await new Promise(r => setTimeout(r, 500));
       }
     }
@@ -526,4 +523,4 @@ window.moveStarterToField = moveStarterToField;
 window.attachSelectedEnergyToDino = attachSelectedEnergyToDino;
 window.drawBattleCard = drawBattleCard;
 window.showGY = showGY;
-window.showZoom = (card, source, handIdx) => { if (window.showZoomExternal) window.showZoomExternal(card, source, handIdx); };
+// Note: window.showZoom is already defined in main.js; do NOT override it here.
