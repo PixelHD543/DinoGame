@@ -1,6 +1,7 @@
 import { initDeckEditor, getSavedDeck } from './deckEditor.js';
 import { startMatch, drawBattleCard, selectEnergyFromPile, attachSelectedEnergyToDino, startAttackSelection, attemptEvolution, swapStarterWithField, moveStarterToField, playBattleCardFromHand, nextPhase, showGY, renderBattleUI, battleState } from './battle.js';
 import { getImagePath } from './utils.js';
+import { initCampaign, showCampaignMenu } from './campaign.js';
 
 window.showZoom = function(card, source, handIdx = null) {
   document.getElementById("zoomImage").src = getImagePath(card.name);
@@ -61,8 +62,11 @@ document.querySelectorAll(".menu-card").forEach(card => {
   card.addEventListener("click", () => {
     if(card.getAttribute("data-page") === "deckEditor") showDeckEditor();
     else if(card.getAttribute("data-page") === "battle") showBattlePage();
+    else if(card.getAttribute("data-page") === "campaign") showCampaignMenu();
     else if(card.getAttribute("data-page") === "rules") showRulesPage();
   });
 });
 
+// Initialize campaign
+initCampaign();
 showMainMenu();
