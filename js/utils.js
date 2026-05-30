@@ -1,4 +1,4 @@
-import { ENERGY_TYPES, EVOLUTION_MAP } from './constants.js';
+import { ALL_CARDS } from './constants.js';
 
 export function shuffle(arr) {
   for(let i=arr.length-1;i>0;i--){
@@ -51,6 +51,7 @@ export function processAilments(dino, phase, addLog) {
       let d10 = Math.floor(Math.random() * 10) + 1;
       dino.damage = (dino.damage || 0) + d10;
       addLog(`${dino.name} loses ${d10} HP from poison.`);
+      // Trigger poison effects (e.g., Dilophosaurus) – will be handled in battle.js
     }
     if (dino.ailments.includes('submerged')) {
       removeAilment(dino, 'submerged');
@@ -71,14 +72,14 @@ export function createEnergyCard(type) {
 
 export function createEnergyPile() {
   let pile = [];
+  const ENERGY_TYPES = ["Fire", "Water", "Grass", "Ground", "Electric", "Normal", "Wind"];
   for(let i=0;i<2;i++) ENERGY_TYPES.forEach(t => pile.push(createEnergyCard(t)));
   return shuffle(pile);
 }
 
-export function getEvolutionStage(dinoName) {
-   // Only Stage 1 can evolve
+// Type‑based evolution: Stage 1 → Stage 2 of same type
+export function getEvolutionStage(dino) {
   if (dino.stage !== 1) return null;
-  // Find the first Stage 2 dino with the same type
   const next = ALL_CARDS.find(c => c.category === 'dino' && c.stage === 2 && c.type === dino.type);
   return next ? next.name : null;
 }
