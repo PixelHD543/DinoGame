@@ -52,11 +52,4 @@ export const CARD_CATALOG = {
 
 export const ALL_CARDS = [...CARD_CATALOG.dinos, ...CARD_CATALOG.moves, ...CARD_CATALOG.research];
 export const ENERGY_TYPES = ["Fire", "Water", "Grass", "Ground", "Electric", "Normal", "Wind"];
-export const EVOLUTION_MAP = {
-  "Baby rex": "T-rex",
-  "T-rex": "Omega Rex",
-  "Baby Triceratops": "Triceratops",
-  "Baby Velociraptor": "Velociraptor",
-  "Baby Ankylosaurus": "Ankylosaurus",
-  "Baby Argentinosaurus": "Argentinosaurus"
 };
