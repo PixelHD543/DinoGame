@@ -138,7 +138,7 @@ function executeAttack(defenderPid, defenderZoneIdx) {
   if(!defender) { clearAttackGlow(); pendingAttacker = null; return; }
 
   // Acrocanthosaurus effect: destroy injured defender
-  const acroEffect = applyCardEffect(attacker, pendingAttacker.pid, "attack", { defender, defenderPid });
+  const acroEffect = applyCardEffect(attacker, pendingAttacker.pid, "attack", { defender, defenderPid, battleState }, addLog);
   if (acroEffect) {
     clearAttackGlow();
     pendingAttacker = null;
@@ -159,11 +159,10 @@ function executeAttack(defenderPid, defenderZoneIdx) {
   }
   let typeMult = getTypeMultiplier(attacker.type, defender.type);
   let attackPower = (attacker.power * typeMult) + (discard * 1000);
-  // Bleed multiplier (if defender has bleed, double damage; if Allosaurus on attacker's field, double again)
+  // Bleed multiplier
   let bleedMult = 1;
   if (defender.ailments && defender.ailments.includes('bleed')) {
     bleedMult = 2;
-    // Check for Allosaurus on attacker's field
     const hasAllo = battleState[`p${pendingAttacker.pid}`].dinoZones.some(d => d && d.name === "Allosaurus");
     if (hasAllo) bleedMult *= 2;
     attackPower *= bleedMult;
@@ -181,9 +180,9 @@ function executeAttack(defenderPid, defenderZoneIdx) {
   defender.damage = (defender.damage||0) + damage;
   addLog(`${attacker.name} attacks: ${attackPower} vs ${defendPower} → ${damage} damage.`);
 
-  // Dilophosaurus poison healing (when opponent takes poison damage)
+  // Dilophosaurus poison healing
   if (defender.ailments && defender.ailments.includes('poison') && damage > 0) {
-    applyCardEffect(null, pendingAttacker.pid, "poisonDamage", { damage });
+    applyCardEffect(null, pendingAttacker.pid, "poisonDamage", { damage, battleState }, addLog);
   }
 
   if(defender.damage >= defender.hp) {
@@ -296,7 +295,7 @@ export function playBattleCardFromHand(pid, handIdx) {
   if(!card) return;
   if(card.category === 'dino') {
     if(card.stage !== 1) { addLog("Only Stage 1 can be played directly."); return; }
-    // Special handling for Compsognathus stacking
+    // Compsognathus stacking
     if (card.name === "Compsognathus") {
       let existing = p.dinoZones.findIndex(d => d && d.name === "Compsognathus");
       if (existing !== -1 && confirm("Stack this Compsognathus on an existing one?")) {
@@ -367,8 +366,7 @@ function endTurn() {
     battleState.starterMovedThisTurn = false;
     battleState.phase = 'main';
     battleState.selectedEnergy = null;
-    // Decrease cooldowns for player 2 (AI) before their turn
-    decreaseCooldowns(2);
+    decreaseCooldowns(2, battleState);
     renderBattleUI();
     addLog("AI's turn.");
     setTimeout(() => aiTurn(), 500);
@@ -380,7 +378,7 @@ function endTurn() {
     battleState.starterMovedThisTurn = false;
     battleState.phase = 'main';
     battleState.selectedEnergy = null;
-    decreaseCooldowns(1);
+    decreaseCooldowns(1, battleState);
     renderBattleUI();
     addLog("Your turn. Click DECK to draw.");
   }
@@ -500,7 +498,6 @@ export function showGY(pid) {
   document.getElementById("gyModal").style.display = "flex";
 }
 
-// ==================== RENDER FUNCTION ====================
 export function renderBattleUI() {
   let container = document.getElementById("battleContainer");
   if(!battleState) { container.innerHTML = "<div style='text-align:center; font-size:2rem;'>Start a match first</div>"; return; }
