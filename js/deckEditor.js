@@ -1,23 +1,13 @@
-import { ALL_CARDS } from './cardData.js';
-import { getImagePath, shuffle } from './utils.js';
-
-const DECK_KEYS = ["p1_deck1","p1_deck2","p1_deck3","p2_deck1","p2_deck2","p2_deck3"];
-
-export function getSavedDeck(key) {
-  let saved = localStorage.getItem(key);
-  if(saved) return JSON.parse(saved);
-  return ALL_CARDS.slice(0, 15).map(c => ({ id: c.id, category: c.category }));
-}
-
-export function saveDeck(key, deck) {
-  localStorage.setItem(key, JSON.stringify(deck));
-}
+import { ALL_CARDS } from './constants.js';
+import { getImagePath } from './utils.js';
 
 let currentDeckKey = "p1_deck1";
 let currentDeckCards = [];
 let cardSearchFilter = "";
+let showZoomCallback = null;
 
-export function initDeckEditor() {
+export function initDeckEditor(showZoomFn) {
+  showZoomCallback = showZoomFn;
   renderCardPool();
   document.getElementById("deckSelect").onchange = (e) => { currentDeckKey = e.target.value; loadDeck(); };
   document.getElementById("loadDeckBtn").onclick = loadDeck;
@@ -35,9 +25,9 @@ function renderCardPool() {
     let div = document.createElement("div"); div.className = "editable-card";
     let img = document.createElement("img"); img.src = getImagePath(card.name);
     img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 280'%3E%3Crect width='200' height='280' fill='%23c09a6b'/%3E%3Ctext x='100' y='150' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
-    img.addEventListener("click", (e) => { e.stopPropagation(); showZoom(card, "pool"); if(currentDeckCards.length < 30) { currentDeckCards.push({ id: card.id, category: card.category }); renderCurrentDeck(); } else alert("Max 30 cards"); });
+    img.addEventListener("click", (e) => { e.stopPropagation(); if(showZoomCallback) showZoomCallback(card, "pool"); if(currentDeckCards.length < 30) { currentDeckCards.push({ id: card.id, category: card.category }); renderCurrentDeck(); } else alert("Max 30 cards"); });
     div.appendChild(img);
-    div.onclick = () => { if(currentDeckCards.length < 30) { currentDeckCards.push({ id: card.id, category: card.category }); renderCurrentDeck(); showZoom(card, "pool"); } else alert("Max 30 cards"); };
+    div.onclick = () => { if(currentDeckCards.length < 30) { currentDeckCards.push({ id: card.id, category: card.category }); renderCurrentDeck(); if(showZoomCallback) showZoomCallback(card, "pool"); } else alert("Max 30 cards"); };
     container.appendChild(div);
   });
 }
@@ -51,7 +41,7 @@ function renderCurrentDeck() {
     let slot = document.createElement("div"); slot.className = "deck-slot";
     let img = document.createElement("img"); img.src = getImagePath(full.name);
     img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' fill='%23c09a6b'/%3E%3Ctext x='50' y='80' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
-    img.addEventListener("click", (e) => { e.stopPropagation(); showZoom(full, "deck"); });
+    img.addEventListener("click", (e) => { e.stopPropagation(); if(showZoomCallback) showZoomCallback(full, "deck"); });
     let nameSpan = document.createElement("span"); nameSpan.innerText = full.name;
     let delBtn = document.createElement("button"); delBtn.innerText = "❌"; delBtn.onclick = () => { currentDeckCards.splice(idx,1); renderCurrentDeck(); };
     slot.append(img, nameSpan, delBtn);
@@ -61,12 +51,13 @@ function renderCurrentDeck() {
 }
 
 function loadDeck() {
-  currentDeckCards = getSavedDeck(currentDeckKey);
+  const saved = localStorage.getItem(currentDeckKey);
+  currentDeckCards = saved ? JSON.parse(saved) : ALL_CARDS.slice(0, 15).map(c => ({ id: c.id, category: c.category }));
   renderCurrentDeck();
 }
 
 function saveCurrentDeck() {
-  saveDeck(currentDeckKey, currentDeckCards);
+  localStorage.setItem(currentDeckKey, JSON.stringify(currentDeckCards));
   alert("Deck saved!");
 }
 
@@ -77,6 +68,7 @@ function clearCurrentDeck() {
   }
 }
 
-// Placeholder for showZoom – will be set by main.js
-let showZoom = () => {};
-export function setShowZoomFunction(fn) { showZoom = fn; }
+export function getSavedDeck(key) {
+  const saved = localStorage.getItem(key);
+  return saved ? JSON.parse(saved) : ALL_CARDS.slice(0, 15).map(c => ({ id: c.id, category: c.category }));
+}
