@@ -1,5 +1,5 @@
 import { ALL_CARDS } from './constants.js';
-import { shuffle, getImagePath, getTypeMultiplier, applyAilment, processAilments, createEnergyPile, getEvolutionStage } from './utils.js';
+import { shuffle, getImagePath, getTypeMultiplier, applyAilment, processAilments, createEnergyPile, getEvolutionStages } from './utils.js';
 import { getSavedDeck } from './deckEditor.js';
 import { applyCardEffect, decreaseCooldowns } from './effects.js';
 
@@ -221,7 +221,7 @@ function clearAttackGlow() {
   }
 }
 
-export function attemptEvolution(pid, zoneIdx) {
+export async function attemptEvolution(pid, zoneIdx) {
   if(battleState.turn !== pid) {
     addLog("Not your turn.");
     return;
@@ -239,18 +239,66 @@ export function attemptEvolution(pid, zoneIdx) {
     addLog("No dino in that zone.");
     return;
   }
-  let nextName = getEvolutionStage(dino);
-  if(!nextName) {
+  let possibleStages = getEvolutionStages(dino);
+  if(possibleStages.length === 0) {
     addLog(`${dino.name} cannot evolve (no Stage 2 of same type).`);
     return;
   }
-  let handIndex = battleState[`p${pid}`].hand.findIndex(c => c.name === nextName && c.category === 'dino');
+  // Filter to those actually in hand
+  let available = possibleStages.filter(name => 
+    battleState[`p${pid}`].hand.some(c => c.name === name && c.category === 'dino')
+  );
+  if(available.length === 0) {
+    addLog(`You need a Stage 2 ${dino.type} dino in your hand to evolve.`);
+    return;
+  }
+  
+  let chosenName = available[0];
+  if(available.length > 1) {
+    // Show modal for player to choose
+    chosenName = await new Promise(resolve => {
+      const modal = document.getElementById("searchModal");
+      const title = document.getElementById("searchTitle");
+      title.innerText = `Choose evolution for ${dino.name}`;
+      const container = document.getElementById("searchResults");
+      container.innerHTML = "";
+      available.forEach(name => {
+        const card = ALL_CARDS.find(c => c.name === name);
+        if(card) {
+          const cardDiv = document.createElement("div");
+          cardDiv.className = "search-card";
+          const img = document.createElement("img");
+          img.src = getImagePath(card.name);
+          img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 213'%3E%3Crect width='160' height='213' fill='%23c09a6b'/%3E%3Ctext x='80' y='110' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
+          cardDiv.appendChild(img);
+          cardDiv.onclick = () => {
+            resolve(card.name);
+            modal.style.display = "none";
+          };
+          container.appendChild(cardDiv);
+        }
+      });
+      const cancelBtn = document.createElement("button");
+      cancelBtn.innerText = "Cancel";
+      cancelBtn.onclick = () => { resolve(null); modal.style.display = "none"; };
+      container.appendChild(cancelBtn);
+      modal.style.display = "flex";
+    });
+    if (!chosenName) {
+      addLog("Evolution cancelled.");
+      return;
+    }
+  }
+  
+  let handIndex = battleState[`p${pid}`].hand.findIndex(c => c.name === chosenName && c.category === 'dino');
   if(handIndex === -1) {
-    addLog(`You need ${nextName} in your hand to evolve.`);
+    addLog(`You no longer have ${chosenName} in hand.`);
     return;
   }
   let nextCard = battleState[`p${pid}`].hand[handIndex];
+  // Send current dino to GY
   battleState[`p${pid}`].graveyard.push({...dino});
+  // Replace with evolved dino
   battleState[`p${pid}`].dinoZones[zoneIdx] = {...nextCard, damage:0, energyAttached:[], ailments: [], ailmentTurns: {}};
   battleState[`p${pid}`].hand.splice(handIndex,1);
   battleState.evolutionUsedThisTurn = true;
@@ -294,7 +342,7 @@ export function playBattleCardFromHand(pid, handIdx) {
   let card = p.hand[handIdx];
   if(!card) return;
   if(card.category === 'dino') {
-    if(card.stage !== 1) { addLog("Only Stage 1 can be played directly."); return; }
+    if(card.stage !== 1) { addLog("Only Stage 1 can be played directly. Evolve from a Stage 1 on field."); return; }
     // Compsognathus stacking
     if (card.name === "Compsognathus") {
       let existing = p.dinoZones.findIndex(d => d && d.name === "Compsognathus");
@@ -415,18 +463,23 @@ async function aiTurn() {
       renderBattleUI();
     }
   }
+  // AI evolution
   if(!battleState.evolutionUsedThisTurn) {
     for(let i=0;i<4;i++) {
       let d = battleState.p2.dinoZones[i];
       if(d) {
-        let nextName = getEvolutionStage(d);
-        if(nextName) {
-          let nextCard = battleState.p2.hand.find(c => c.name === nextName && c.category === 'dino');
-          if(nextCard) {
+        let possible = getEvolutionStages(d);
+        let available = possible.filter(name => 
+          battleState.p2.hand.some(c => c.name === name && c.category === 'dino')
+        );
+        if(available.length > 0) {
+          let chosenName = available[0]; // AI picks first
+          let handIndex = battleState.p2.hand.findIndex(c => c.name === chosenName && c.category === 'dino');
+          if(handIndex !== -1) {
+            let nextCard = battleState.p2.hand[handIndex];
             battleState.p2.graveyard.push({...d});
             battleState.p2.dinoZones[i] = {...nextCard, damage:0, energyAttached:[], ailments: [], ailmentTurns: {}};
-            let idx = battleState.p2.hand.findIndex(c => c === nextCard);
-            battleState.p2.hand.splice(idx,1);
+            battleState.p2.hand.splice(handIndex,1);
             battleState.evolutionUsedThisTurn = true;
             addLog(`AI evolved into ${nextCard.name}.`);
             renderBattleUI();
