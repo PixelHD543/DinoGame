@@ -73,7 +73,6 @@ function renderLevelList() {
 }
 
 function buildOpponentDeck(levelId) {
-  // Simple random deck for now; in a full version you'd design specific decks per level.
   const opponentCards = [];
   for(let i=0; i<15; i++) {
     const randomCard = ALL_CARDS[Math.floor(Math.random() * ALL_CARDS.length)];
@@ -94,15 +93,12 @@ function startLevel(levelId) {
   currentLevel = levels[levelId-1];
   const opponentDeck = buildOpponentDeck(levelId);
   
-  // Hide level selector and crafting section, show battle container
   document.querySelector(".level-selector").style.display = "none";
   document.querySelector(".crafting-section").style.display = "none";
   document.getElementById("campaignBattleContainer").style.display = "block";
   
-  // Start the battle
   startBattle(campaignDeck, opponentDeck);
   
-  // Monitor battle outcome
   if(battleInterval) clearInterval(battleInterval);
   battleInterval = setInterval(() => {
     if(window.battleState) {
@@ -169,7 +165,7 @@ function renderCraftableCards() {
         saveCampaignProgress();
         updateFossilUI();
         renderCraftableCards();
-        renderCampaignDeckEditor(); // refresh deck editor pool if open
+        renderCampaignDeckEditor();
         alert(`Crafted ${cardName}! It's now available in your campaign deck.`);
       } else {
         alert("Not enough fossils!");
@@ -182,7 +178,6 @@ function renderCampaignDeckEditor() {
   const poolContainer = document.getElementById("campaignCardPool");
   const deckContainer = document.getElementById("campaignDeckList");
   if(!poolContainer) return;
-  // Show Stage 1 dinos + crafted cards + moves/research (all cards except uncrafted Stage 2/3)
   const allowedCards = ALL_CARDS.filter(c => 
     c.category !== 'dino' || 
     (c.category === 'dino' && (c.stage === 1 || campaignProgress.craftedCards.includes(c.name)))
@@ -243,27 +238,27 @@ function closeCampaignDeckModal() {
 
 export function showCampaignMenu() {
   if(battleInterval) clearInterval(battleInterval);
-  document.querySelector(".level-selector").style.display = "block";
-  document.querySelector(".crafting-section").style.display = "block";
-  document.getElementById("campaignBattleContainer").style.display = "none";
+  const levelSelector = document.querySelector(".level-selector");
+  const craftingSection = document.querySelector(".crafting-section");
+  if(levelSelector) levelSelector.style.display = "block";
+  if(craftingSection) craftingSection.style.display = "block";
+  const campaignBattleContainer = document.getElementById("campaignBattleContainer");
+  if(campaignBattleContainer) campaignBattleContainer.style.display = "none";
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  document.getElementById("campaignPage").classList.add("active");
+  const campaignPage = document.getElementById("campaignPage");
+  if(campaignPage) campaignPage.classList.add("active");
   loadCampaignProgress();
 }
 
 export function initCampaign() {
   loadCampaignProgress();
-  document.getElementById("backToMainFromCampaign").onclick = () => {
+  const backBtn = document.getElementById("backToMainFromCampaign");
+  if(backBtn) backBtn.onclick = () => {
     document.getElementById("campaignPage").classList.remove("active");
     window.showMainMenu();
   };
-  document.getElementById("openCampaignDeckEditorBtn").onclick = openCampaignDeckModal;
-  document.getElementById("saveCampaignDeckBtn").onclick = saveCampaignDeck;
-  // Optional: search filter for campaign deck pool
-  const searchInput = document.getElementById("campaignCardSearch");
-  if(searchInput) {
-    searchInput.oninput = () => {
-      // you can implement filtering if desired, but leave for now
-    };
-  }
+  const openEditorBtn = document.getElementById("openCampaignDeckEditorBtn");
+  if(openEditorBtn) openEditorBtn.onclick = openCampaignDeckModal;
+  const saveDeckBtn = document.getElementById("saveCampaignDeckBtn");
+  if(saveDeckBtn) saveDeckBtn.onclick = saveCampaignDeck;
 }
