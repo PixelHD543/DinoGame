@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Dino Duel TCG - AI Opponent & Physical Energy</title>
+  <title>Dino Duel TCG - Fixed Evolution & Starter Move</title>
   <style>
+    /* (same styles as before – no changes needed) */
     * { box-sizing: border-box; user-select: none; }
     body {
       background: linear-gradient(145deg, #1a3a2a 0%, #0a1f12 100%);
@@ -69,7 +70,7 @@
       background: #4a2e1e; border-radius: 24px; padding: 8px; border: 3px solid #c97e3a;
       box-shadow: 0 6px 12px black; display: flex; flex-direction: column; position: relative;
     }
-    .starter-zone { background: #5e3a1f; border-color: #ffb347; }
+    .starter-zone { background: #5e3a1f; border-color: #ffb347; cursor: pointer; }
     .dino-zone { background: #4a2e1e; border-color: #ff914d; position: relative; }
     .research-zone { background: #2d5f6e; border-color: #6bcbff; }
     .card-image {
@@ -227,7 +228,7 @@
   </style>
 </head>
 <body>
-<!-- Modals -->
+<!-- Modals (same as before) -->
 <div id="zoomModal" class="modal"><div class="modal-content"><img id="zoomImage" src=""><div id="zoomEffectText" class="effect-text"></div><div><button id="playFromZoomBtn" style="display:none;">🎮 Play Card</button><button onclick="closeZoom()">Close</button></div></div></div>
 <div id="searchModal" class="modal"><div class="modal-content"><h3 id="searchTitle">Select a card</h3><div id="searchResults" class="search-result-grid"></div><button onclick="closeSearchModal()">Cancel</button></div></div>
 <div id="gyModal" class="modal"><div class="modal-content"><h3>Graveyard</h3><div id="gyList" class="gy-grid"></div><button onclick="closeGYModal()">Close</button></div></div>
@@ -248,7 +249,7 @@
   <div class="rules-content">
     <h3>🎯 Goal</h3><p>First to 6 points wins.</p>
     <h3>🎲 Setup</h3><ol><li>Build decks (max 30 cards).</li><li>Choose which deck for each player (AI uses its own deck).</li><li>Pick a Stage 1 starter from your hand (if none, starter goes to a dino zone).</li><li>Draw 6 cards. Player 1 starts.</li></ol>
-    <h3>⚡ Turn</h3><ol><li>Draw 1 card (click DECK).</li><li>Main Phase: play Stage 1 dinos, evolve, play research, attach energy (click an energy card, then click a dino).</li><li>Battle Phase: attack with dinos. Defender is prompted to spend 1 energy to block.</li><li>End Phase: end turn.</li></ol>
+    <h3>⚡ Turn</h3><ol><li>Draw 1 card (click DECK).</li><li>Main Phase: play Stage 1 dinos, evolve (once per turn), play research, attach energy (click an energy card, then click a dino).</li><li>If you have no dinos on field, you can move your Starter to a dino zone (click starter zone).</li><li>Battle Phase: attack with dinos. Defender is prompted to spend 1 energy to block.</li><li>End Phase: end turn.</li></ol>
     <h3>🔥 Type Matchups</h3><ul><li>Water > Fire (2x) – Water weak to Electric (0.5x)</li><li>Fire > Grass – Fire weak to Water</li><li>Grass > Ground – Grass weak to Fire</li><li>Ground > Electric – Ground weak to Grass</li><li>Electric > Water – Electric weak to Ground</li></ul>
     <button onclick="showMainMenu()">🔙 Back</button>
   </div>
@@ -292,7 +293,7 @@
 </div>
 
 <script>
-  // ---------- CARD DATABASE (from your images) ----------
+  // ---------- CARD DATABASE (same as before) ----------
   const CARD_CATALOG = {
     dinos: [
       { id:"Acrocanthosaurus", name:"Acrocanthosaurus", type:"fire", stage:2, power:2000, hp:3000, effect:"If this dino attacks an injured dino; destroy that dino. This effect can only happen once every third turn.", imageEmoji:"🔥", category:"dino" },
@@ -349,7 +350,6 @@
   function createEnergyCard(type) { return { id:`${type}Energy`, name:`${type} Energy`, category:"energy", energyType:type, imageEmoji:"⚡" }; }
   
   // Deck storage
-  const DECK_KEYS = { p1: ["p1_deck1","p1_deck2","p1_deck3"], p2: ["p2_deck1","p2_deck2","p2_deck3"] };
   function getSavedDeck(key) { let saved = localStorage.getItem(key); return saved ? JSON.parse(saved) : ALL_CARDS.slice(0, 15).map(c => ({ id: c.id, category: c.category })); }
   function saveDeck(key, deck) { localStorage.setItem(key, JSON.stringify(deck)); }
   function getImagePath(cardName) { return `images/${encodeURIComponent(cardName)}.png`; }
@@ -428,7 +428,7 @@
     loadDeck();
   }
   
-  // ======================== BATTLE WITH AI ========================
+  // ======================== BATTLE WITH FIXED EVOLUTION & STARTER MOVE ========================
   let battleState = null;
   let pendingAttacker = null;
   let gameLog = [];
@@ -449,7 +449,7 @@
     battleState = {
       p1: { deck: p1Full, hand: [], dinoZones: new Array(4).fill(null), researchZones: new Array(4).fill(null), starterZone: null, graveyard: [], energyPile: createEnergyPile(), points: 0 },
       p2: { deck: p2Full, hand: [], dinoZones: new Array(4).fill(null), researchZones: new Array(4).fill(null), starterZone: null, graveyard: [], energyPile: createEnergyPile(), points: 0 },
-      turn: 1, phase: 'main', drawnThisTurn: false, usedSwap: false, selectedEnergy: null
+      turn: 1, phase: 'main', drawnThisTurn: false, usedSwap: false, evolutionUsedThisTurn: false, starterMovedThisTurn: false
     };
     for(let pid of [1,2]){ let p = battleState[`p${pid}`]; for(let i=0;i<6 && p.deck.length;i++) p.hand.push(p.deck.pop()); }
     await selectStarterForPlayer(1);
@@ -533,6 +533,25 @@
     dino.energyAttached.push(energyCard);
     addLog(`Attached ${energyCard.name} to ${dino.name}.`);
     battleState.selectedEnergy = null;
+    renderBattleUI();
+  }
+  
+  // New: Move starter to a dino zone (only if no dinos on field)
+  function moveStarterToField(pid) {
+    if(battleState.turn !== pid) return;
+    if(battleState.phase !== 'main') return;
+    if(battleState.starterMovedThisTurn) { addLog("You already moved your starter this turn."); return; }
+    let p = battleState[`p${pid}`];
+    if(!p.starterZone) { addLog("No starter to move."); return; }
+    let hasDino = p.dinoZones.some(d => d !== null);
+    if(hasDino) { addLog("You already have dinos on field. Cannot move starter."); return; }
+    let emptySlot = p.dinoZones.findIndex(z => z === null);
+    if(emptySlot === -1) { addLog("No empty dino zone."); return; }
+    // Move starter to dino zone
+    p.dinoZones[emptySlot] = {...p.starterZone, damage:0, energyAttached:[], ailments: p.starterZone.ailments || [], ailmentTurns: p.starterZone.ailmentTurns || {}};
+    p.starterZone = null;
+    battleState.starterMovedThisTurn = true;
+    addLog(`Moved ${p.dinoZones[emptySlot].name} from starter zone to field.`);
     renderBattleUI();
   }
   
@@ -622,9 +641,10 @@
   
   function attemptEvolution(pid, zoneIdx) {
     if(battleState.turn !== pid || battleState.phase !== 'main') return;
+    if(battleState.evolutionUsedThisTurn) { addLog("You can only evolve once per turn."); return; }
     let dino = battleState[`p${pid}`].dinoZones[zoneIdx];
     if(!dino) return;
-    let nextName = { "Baby rex":"T-rex", "Baby Triceratops":"Triceratops", "Baby Velociraptor":"Velociraptor", "Baby Ankylosaurus":"Ankylosaurus", "Baby Argentinosaurus":"Argentinosaurus" }[dino.name];
+    let nextName = { "Baby rex":"T-rex", "T-rex":"Omega Rex", "Baby Triceratops":"Triceratops", "Baby Velociraptor":"Velociraptor", "Baby Ankylosaurus":"Ankylosaurus", "Baby Argentinosaurus":"Argentinosaurus" }[dino.name];
     if(!nextName) { addLog("Cannot evolve."); return; }
     let handIndex = battleState[`p${pid}`].hand.findIndex(c => c.name === nextName && c.category === 'dino');
     if(handIndex === -1) { addLog(`No ${nextName} in hand.`); return; }
@@ -632,6 +652,7 @@
     battleState[`p${pid}`].graveyard.push({...dino});
     battleState[`p${pid}`].dinoZones[zoneIdx] = {...nextCard, damage:0, energyAttached:[], ailments: [], ailmentTurns: {}};
     battleState[`p${pid}`].hand.splice(handIndex,1);
+    battleState.evolutionUsedThisTurn = true;
     addLog(`${dino.name} evolved into ${nextCard.name}!`);
     renderBattleUI();
   }
@@ -711,6 +732,8 @@
       battleState.turn = 2;
       battleState.drawnThisTurn = false;
       battleState.usedSwap = false;
+      battleState.evolutionUsedThisTurn = false;
+      battleState.starterMovedThisTurn = false;
       battleState.phase = 'main';
       battleState.selectedEnergy = null;
       renderBattleUI();
@@ -720,6 +743,8 @@
       battleState.turn = 1;
       battleState.drawnThisTurn = false;
       battleState.usedSwap = false;
+      battleState.evolutionUsedThisTurn = false;
+      battleState.starterMovedThisTurn = false;
       battleState.phase = 'main';
       battleState.selectedEnergy = null;
       renderBattleUI();
@@ -758,20 +783,24 @@
         renderBattleUI();
       }
     }
-    for(let i=0;i<4;i++) {
-      let d = battleState.p2.dinoZones[i];
-      if(d) {
-        let nextName = { "Baby rex":"T-rex", "Baby Triceratops":"Triceratops", "Baby Velociraptor":"Velociraptor", "Baby Ankylosaurus":"Ankylosaurus", "Baby Argentinosaurus":"Argentinosaurus" }[d.name];
-        if(nextName) {
-          let nextCard = battleState.p2.hand.find(c => c.name === nextName && c.category === 'dino');
-          if(nextCard) {
-            battleState.p2.graveyard.push({...d});
-            battleState.p2.dinoZones[i] = {...nextCard, damage:0, energyAttached:[], ailments: [], ailmentTurns: {}};
-            let idx = battleState.p2.hand.findIndex(c => c === nextCard);
-            battleState.p2.hand.splice(idx,1);
-            addLog(`AI evolved into ${nextCard.name}.`);
-            renderBattleUI();
-            break;
+    // AI evolution (once per turn)
+    if(!battleState.evolutionUsedThisTurn) {
+      for(let i=0;i<4;i++) {
+        let d = battleState.p2.dinoZones[i];
+        if(d) {
+          let nextName = { "Baby rex":"T-rex", "T-rex":"Omega Rex", "Baby Triceratops":"Triceratops", "Baby Velociraptor":"Velociraptor", "Baby Ankylosaurus":"Ankylosaurus", "Baby Argentinosaurus":"Argentinosaurus" }[d.name];
+          if(nextName) {
+            let nextCard = battleState.p2.hand.find(c => c.name === nextName && c.category === 'dino');
+            if(nextCard) {
+              battleState.p2.graveyard.push({...d});
+              battleState.p2.dinoZones[i] = {...nextCard, damage:0, energyAttached:[], ailments: [], ailmentTurns: {}};
+              let idx = battleState.p2.hand.findIndex(c => c === nextCard);
+              battleState.p2.hand.splice(idx,1);
+              battleState.evolutionUsedThisTurn = true;
+              addLog(`AI evolved into ${nextCard.name}.`);
+              renderBattleUI();
+              break;
+            }
           }
         }
       }
@@ -836,7 +865,8 @@
       let bottomRow = document.getElementById(`battleP${pid}BottomRow`);
       if(!topRow) continue;
       let starterImg = getImagePath(pData.starterZone?.name || 'placeholder');
-      topRow.innerHTML = `<div class="zone-card starter-zone"><img class="card-image" src="${starterImg}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E⭐%3C/text%3E%3C/svg%3E'" onclick="showZoom(pData.starterZone, 'field')"><div class="card-stats"><span>❤️${pData.starterZone?.hp || 0}</span></div></div>`;
+      let starterZoneHtml = `<div class="zone-card starter-zone" onclick="moveStarterToField(${pid})"><img class="card-image" src="${starterImg}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E⭐%3C/text%3E%3C/svg%3E'" onclick="event.stopPropagation(); showZoom(pData.starterZone, 'field')"><div class="card-stats"><span>❤️${pData.starterZone?.hp || 0}</span></div></div>`;
+      topRow.innerHTML = starterZoneHtml;
       for(let i=0;i<4;i++) {
         let d = pData.dinoZones[i];
         let currentHp = d ? d.hp - (d.damage||0) : 0;
@@ -890,6 +920,7 @@
   window.attemptEvolution = attemptEvolution;
   window.swapStarterWithField = swapStarterWithField;
   window.selectEnergyFromPile = selectEnergyFromPile;
+  window.moveStarterToField = moveStarterToField;
   
   function initBattlePage() {
     let p1Select = document.getElementById("p1DeckSelect");
