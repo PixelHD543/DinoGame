@@ -1,5 +1,5 @@
 import { initDeckEditor, getSavedDeck } from './deckEditor.js';
-import { startMatch, drawBattleCard, selectEnergyFromPile, attachSelectedEnergyToDino, startAttackSelection, attemptEvolution, swapStarterWithField, moveStarterToField, playBattleCardFromHand, nextPhase, showGY, renderBattleUI, battleState } from './battle.js';
+import { startMatch, drawBattleCard, startAttackSelection, attemptEvolution, swapStarterWithField, moveStarterToField, playBattleCardFromHand, nextPhase, showGY, renderBattleUI, battleState } from './battle.js';
 import { getImagePath } from './utils.js';
 import { initCampaign, showCampaignMenu } from './campaign.js';
 
@@ -67,6 +67,5 @@ document.querySelectorAll(".menu-card").forEach(card => {
   });
 });
 
-// Initialize campaign
 initCampaign();
 showMainMenu();
