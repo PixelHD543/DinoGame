@@ -178,6 +178,15 @@ function executeAttack(defenderPid, defenderZoneIdx) {
   }
   let damage = Math.max(0, attackPower - defendPower);
   defender.damage = (defender.damage||0) + damage;
+  
+  // --- Defender flash animation ---
+  let defenderElem = document.getElementById(`dinoZone_${defenderPid}_${defenderZoneIdx}`);
+  if (defenderElem) {
+    defenderElem.style.transition = 'background-color 0.1s';
+    defenderElem.style.backgroundColor = '#ff4d4d';
+    setTimeout(() => defenderElem.style.backgroundColor = '', 150);
+  }
+  
   addLog(`${attacker.name} attacks: ${attackPower} vs ${defendPower} → ${damage} damage.`);
 
   // Dilophosaurus poison healing
