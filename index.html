@@ -3,23 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Dino Duel TCG - Modular</title>
+  <title>Dino Duel TCG - Campaign Mode</title>
   <link rel="stylesheet" href="styles.css">
   <script type="module" src="js/main.js"></script>
 </head>
 <body>
 <!-- Modals -->
-<div id="zoomModal" class="modal"><div class="modal-content"><img id="zoomImage" src=""><div id="zoomEffectText" class="effect-text"></div><div><button id="playFromZoomBtn" style="display:none;">🎮 Play Card</button><button onclick="closeZoom()">Close</button></div></div></div>
-<div id="searchModal" class="modal"><div class="modal-content"><h3 id="searchTitle">Select a card</h3><div id="searchResults" class="search-result-grid"></div><button onclick="closeSearchModal()">Cancel</button></div></div>
-<div id="gyModal" class="modal"><div class="modal-content"><h3>Graveyard</h3><div id="gyList" class="gy-grid"></div><button onclick="closeGYModal()">Close</button></div></div>
+<div id="zoomModal" class="modal"><div class="modal-content"><img id="zoomImage" src=""><div id="zoomEffectText" class="effect-text"></div><div><button id="playFromZoomBtn" style="display:none;">🎮 Play Card</button><button onclick="window.closeZoom()">Close</button></div></div></div>
+<div id="searchModal" class="modal"><div class="modal-content"><h3 id="searchTitle">Select a card</h3><div id="searchResults" class="search-result-grid"></div><button onclick="window.closeSearchModal()">Cancel</button></div></div>
+<div id="gyModal" class="modal"><div class="modal-content"><h3>Graveyard</h3><div id="gyList" class="gy-grid"></div><button onclick="window.closeGYModal()">Close</button></div></div>
 <div id="starterModal" class="modal"><div class="modal-content"><h3>Choose your Starter Dino (Stage 1)</h3><div id="starterChoices" class="search-result-grid"></div></div></div>
 
-<!-- Pages -->
+<!-- MAIN MENU -->
 <div id="mainMenuPage" class="page active">
-  <h1>🦖 DINO DUEL TCG 🦕</h1>
+  <h1 style="text-align:center; font-size: 3rem;">🦖 DINO DUEL TCG 🦕</h1>
   <div class="menu-buttons">
     <div class="menu-card" data-page="deckEditor"><h2>📝 DECK EDITOR</h2><p>Create & save multiple decks</p></div>
     <div class="menu-card" data-page="battle"><h2>⚔️ BATTLE ARENA</h2><p>VS AI (Player 2)</p></div>
+    <div class="menu-card" data-page="campaign"><h2>📜 CAMPAIGN</h2><p>Single‑player story</p></div>
     <div class="menu-card" data-page="rules"><h2>📖 RULES</h2><p>Full game rules</p></div>
   </div>
 </div>
@@ -28,7 +29,7 @@
   <h2>📖 Game Rules</h2>
   <div class="rules-content">
     <h3>🎯 Goal</h3><p>First to 6 points wins.</p>
-    <h3>🎲 Setup</h3><ol><li>Build decks (max 30 cards).</li><li>Choose decks for each player.</li><li>Pick a Stage 1 starter from your hand (if none, starter goes to a dino zone).</li><li>Draw 6 cards. Player 1 starts.</li></ol>
+    <h3>🎲 Setup</h3><ol><li>Build decks (max 30 cards).</li><li>Choose which deck for each player (AI uses its own deck).</li><li>Pick a Stage 1 starter from your hand (if none, starter goes to a dino zone).</li><li>Draw 6 cards. Player 1 starts.</li></ol>
     <h3>⚡ Turn</h3><ol><li>Draw 1 card (click DECK).</li><li>Main Phase: play Stage 1 dinos, evolve (once per turn), play research, attach energy (click an energy card, then a dino).</li><li>If no dinos on field, click starter zone to move it to a dino zone.</li><li>Battle Phase: attack; defender may spend 1 energy to block.</li><li>End Phase: end turn.</li></ol>
     <h3>🔥 Type Matchups</h3><ul><li>Water > Fire (2x) – Water weak to Electric (0.5x)</li><li>Fire > Grass – Fire weak to Water</li><li>Grass > Ground – Grass weak to Fire</li><li>Ground > Electric – Ground weak to Grass</li><li>Electric > Water – Electric weak to Ground</li></ul>
     <button onclick="window.showMainMenu()">🔙 Back</button>
@@ -53,7 +54,7 @@
     </div>
     <div class="deck-area">
       <h3>📋 Current Deck</h3>
-      <div id="currentDeckList" class="card-list"></div>
+      <div id="currentDeckList" class="card-list" style="flex-direction: column; max-height: 600px;"></div>
     </div>
   </div>
   <button class="nav-btn" onclick="window.showMainMenu()">🔙 Main Menu</button>
@@ -70,6 +71,47 @@
     <button id="startMatchBtn">🔄 START MATCH</button>
   </div>
   <div id="battleContainer"></div>
+</div>
+
+<!-- CAMPAIGN PAGE -->
+<div id="campaignPage" class="page">
+  <div class="campaign-header">
+    <h2>📜 CAMPAIGN MODE</h2>
+    <button id="backToMainFromCampaign">🏠 Main Menu</button>
+  </div>
+  <div class="campaign-content">
+    <div class="level-selector">
+      <h3>Select Level</h3>
+      <div id="levelList" class="level-grid"></div>
+    </div>
+    <div class="crafting-section">
+      <h3>🦴 Fossil Forge</h3>
+      <div id="fossilTracker">Fossils: 🔸 Low: <span id="lowFossils">0</span> | 🔶 Medium: <span id="mediumFossils">0</span> | 💎 High: <span id="highFossils">0</span></div>
+      <div id="craftableCards" class="craft-list"></div>
+      <button id="openCampaignDeckEditorBtn">📝 Edit Campaign Deck</button>
+    </div>
+  </div>
+  <div id="campaignBattleContainer"></div>
+</div>
+
+<!-- CAMPAIGN DECK EDITOR MODAL -->
+<div id="campaignDeckModal" class="modal">
+  <div class="modal-content">
+    <h3>Campaign Deck Editor (Stage 1 + Crafted Cards)</h3>
+    <div class="deck-editor">
+      <div class="card-pool">
+        <h4>📚 Card Pool</h4>
+        <div class="search-bar"><input type="text" id="campaignCardSearch" placeholder="Search..."></div>
+        <div id="campaignCardPool" class="card-list"></div>
+      </div>
+      <div class="deck-area">
+        <h4>📋 Your Deck (<span id="campaignDeckSize">0</span>/30)</h4>
+        <div id="campaignDeckList" class="card-list" style="flex-direction: column;"></div>
+      </div>
+    </div>
+    <button id="saveCampaignDeckBtn">Save Deck</button>
+    <button onclick="closeCampaignDeckModal()">Close</button>
+  </div>
 </div>
 </body>
 </html>
