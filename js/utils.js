@@ -51,7 +51,6 @@ export function processAilments(dino, phase, addLog) {
       let d10 = Math.floor(Math.random() * 10) + 1;
       dino.damage = (dino.damage || 0) + d10;
       addLog(`${dino.name} loses ${d10} HP from poison.`);
-      // Trigger poison effects (e.g., Dilophosaurus) – will be handled in battle.js
     }
     if (dino.ailments.includes('submerged')) {
       removeAilment(dino, 'submerged');
@@ -77,9 +76,9 @@ export function createEnergyPile() {
   return shuffle(pile);
 }
 
-// Type‑based evolution: Stage 1 → Stage 2 of same type
-export function getEvolutionStage(dino) {
-  if (dino.stage !== 1) return null;
-  const next = ALL_CARDS.find(c => c.category === 'dino' && c.stage === 2 && c.type === dino.type);
-  return next ? next.name : null;
+// Returns array of possible Stage 2 names (same type)
+export function getEvolutionStages(dino) {
+  if (dino.stage !== 1) return [];
+  const stages = ALL_CARDS.filter(c => c.category === 'dino' && c.stage === 2 && c.type === dino.type);
+  return stages.map(s => s.name);
 }
