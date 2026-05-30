@@ -1,6 +1,7 @@
 import { ALL_CARDS } from './constants.js';
 import { shuffle, getImagePath, getTypeMultiplier, applyAilment, processAilments, createEnergyPile, getEvolutionStage } from './utils.js';
 import { getSavedDeck } from './deckEditor.js';
+import { applyCardEffect, decreaseCooldowns } from './effects.js';
 
 export let battleState = null;
 let pendingAttacker = null;
@@ -135,6 +136,20 @@ function executeAttack(defenderPid, defenderZoneIdx) {
   let attacker = pendingAttacker.dino;
   let defender = battleState[`p${defenderPid}`].dinoZones[defenderZoneIdx];
   if(!defender) { clearAttackGlow(); pendingAttacker = null; return; }
+
+  // Acrocanthosaurus effect: destroy injured defender
+  const acroEffect = applyCardEffect(attacker, pendingAttacker.pid, "attack", { defender, defenderPid });
+  if (acroEffect) {
+    clearAttackGlow();
+    pendingAttacker = null;
+    renderBattleUI();
+    if(battleState.p1.points>=6 || battleState.p2.points>=6) {
+      alert(`Game Over! Player ${battleState.p1.points>=6 ? 1 : 2} wins.`);
+      startMatch(getSavedDeck(document.getElementById("p1DeckSelect").value), getSavedDeck(document.getElementById("p2DeckSelect").value));
+    }
+    return;
+  }
+
   let maxDiscard = attacker.energyAttached ? attacker.energyAttached.length : 0;
   let discard = parseInt(prompt(`Attack with ${attacker.name}. Discard how many energies? (0-${maxDiscard})`)) || 0;
   discard = Math.min(discard, maxDiscard);
@@ -144,7 +159,15 @@ function executeAttack(defenderPid, defenderZoneIdx) {
   }
   let typeMult = getTypeMultiplier(attacker.type, defender.type);
   let attackPower = (attacker.power * typeMult) + (discard * 1000);
-  if(defender.ailments && defender.ailments.includes('bleed')) attackPower *= 2;
+  // Bleed multiplier (if defender has bleed, double damage; if Allosaurus on attacker's field, double again)
+  let bleedMult = 1;
+  if (defender.ailments && defender.ailments.includes('bleed')) {
+    bleedMult = 2;
+    // Check for Allosaurus on attacker's field
+    const hasAllo = battleState[`p${pendingAttacker.pid}`].dinoZones.some(d => d && d.name === "Allosaurus");
+    if (hasAllo) bleedMult *= 2;
+    attackPower *= bleedMult;
+  }
   let defendPower = 0;
   let canDefend = (defender.energyAttached && defender.energyAttached.length > 0) || (defender.ailments && defender.ailments.includes('fortified'));
   if(canDefend && confirm(`Defender ${defender.name} uses 1 energy to block?`)) {
@@ -157,6 +180,12 @@ function executeAttack(defenderPid, defenderZoneIdx) {
   let damage = Math.max(0, attackPower - defendPower);
   defender.damage = (defender.damage||0) + damage;
   addLog(`${attacker.name} attacks: ${attackPower} vs ${defendPower} → ${damage} damage.`);
+
+  // Dilophosaurus poison healing (when opponent takes poison damage)
+  if (defender.ailments && defender.ailments.includes('poison') && damage > 0) {
+    applyCardEffect(null, pendingAttacker.pid, "poisonDamage", { damage });
+  }
+
   if(defender.damage >= defender.hp) {
     let idx = battleState[`p${defenderPid}`].dinoZones.findIndex(d=>d===defender);
     battleState[`p${defenderPid}`].graveyard.push(defender);
@@ -194,7 +223,6 @@ function clearAttackGlow() {
 }
 
 export function attemptEvolution(pid, zoneIdx) {
-  console.log(`Evolution attempt by Player ${pid}, zone ${zoneIdx}`);
   if(battleState.turn !== pid) {
     addLog("Not your turn.");
     return;
@@ -212,15 +240,12 @@ export function attemptEvolution(pid, zoneIdx) {
     addLog("No dino in that zone.");
     return;
   }
-  console.log(`Current dino: ${dino.name}`);
-  let nextName = getEvolutionStage(dino.name);
-  console.log(`Evolution map lookup: ${dino.name} -> ${nextName}`);
+  let nextName = getEvolutionStage(dino);
   if(!nextName) {
-    addLog(`${dino.name} cannot evolve (no evolution defined).`);
+    addLog(`${dino.name} cannot evolve (no Stage 2 of same type).`);
     return;
   }
   let handIndex = battleState[`p${pid}`].hand.findIndex(c => c.name === nextName && c.category === 'dino');
-  console.log(`Looking for ${nextName} in hand: found at index ${handIndex}`);
   if(handIndex === -1) {
     addLog(`You need ${nextName} in your hand to evolve.`);
     return;
@@ -271,6 +296,20 @@ export function playBattleCardFromHand(pid, handIdx) {
   if(!card) return;
   if(card.category === 'dino') {
     if(card.stage !== 1) { addLog("Only Stage 1 can be played directly."); return; }
+    // Special handling for Compsognathus stacking
+    if (card.name === "Compsognathus") {
+      let existing = p.dinoZones.findIndex(d => d && d.name === "Compsognathus");
+      if (existing !== -1 && confirm("Stack this Compsognathus on an existing one?")) {
+        let target = p.dinoZones[existing];
+        target.power += card.power;
+        target.hp += card.hp;
+        target.stackCount = (target.stackCount || 1) + 1;
+        p.hand.splice(handIdx,1);
+        addLog(`Stacked Compsognathus. Power: ${target.power}, HP: ${target.hp}`);
+        renderBattleUI();
+        return;
+      }
+    }
     let empty = p.dinoZones.findIndex(z=>!z);
     if(empty !== -1) {
       p.dinoZones[empty] = {...card, damage:0, energyAttached:[], ailments: [], ailmentTurns: {}};
@@ -328,6 +367,8 @@ function endTurn() {
     battleState.starterMovedThisTurn = false;
     battleState.phase = 'main';
     battleState.selectedEnergy = null;
+    // Decrease cooldowns for player 2 (AI) before their turn
+    decreaseCooldowns(2);
     renderBattleUI();
     addLog("AI's turn.");
     setTimeout(() => aiTurn(), 500);
@@ -339,6 +380,7 @@ function endTurn() {
     battleState.starterMovedThisTurn = false;
     battleState.phase = 'main';
     battleState.selectedEnergy = null;
+    decreaseCooldowns(1);
     renderBattleUI();
     addLog("Your turn. Click DECK to draw.");
   }
@@ -379,7 +421,7 @@ async function aiTurn() {
     for(let i=0;i<4;i++) {
       let d = battleState.p2.dinoZones[i];
       if(d) {
-        let nextName = getEvolutionStage(d.name);
+        let nextName = getEvolutionStage(d);
         if(nextName) {
           let nextCard = battleState.p2.hand.find(c => c.name === nextName && c.category === 'dino');
           if(nextCard) {
@@ -412,7 +454,13 @@ async function aiTurn() {
         }
         let typeMult = getTypeMultiplier(attacker.type, defender.type);
         let attackPower = (attacker.power * typeMult) + (discard * 1000);
-        if(defender.ailments && defender.ailments.includes('bleed')) attackPower *= 2;
+        let bleedMult = 1;
+        if (defender.ailments && defender.ailments.includes('bleed')) {
+          bleedMult = 2;
+          const hasAllo = battleState.p2.dinoZones.some(d => d && d.name === "Allosaurus");
+          if (hasAllo) bleedMult *= 2;
+          attackPower *= bleedMult;
+        }
         let defendPower = 0;
         if(defender.energyAttached && defender.energyAttached.length > 0 && Math.random() < 0.5) {
           let eng = defender.energyAttached.pop();
@@ -452,7 +500,7 @@ export function showGY(pid) {
   document.getElementById("gyModal").style.display = "flex";
 }
 
-// ==================== RENDER FUNCTION (FULL) ====================
+// ==================== RENDER FUNCTION ====================
 export function renderBattleUI() {
   let container = document.getElementById("battleContainer");
   if(!battleState) { container.innerHTML = "<div style='text-align:center; font-size:2rem;'>Start a match first</div>"; return; }
@@ -515,7 +563,7 @@ export function renderBattleUI() {
   document.getElementById("endTurnBattleBtn")?.addEventListener("click", endTurn);
 }
 
-// Expose needed functions globally for onclick handlers
+// Expose needed functions globally
 window.startAttackSelection = startAttackSelection;
 window.attemptEvolution = attemptEvolution;
 window.swapStarterWithField = swapStarterWithField;
@@ -523,4 +571,3 @@ window.moveStarterToField = moveStarterToField;
 window.attachSelectedEnergyToDino = attachSelectedEnergyToDino;
 window.drawBattleCard = drawBattleCard;
 window.showGY = showGY;
-// Note: window.showZoom is already defined in main.js; do NOT override it here.
