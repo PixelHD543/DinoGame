@@ -2,6 +2,7 @@ import { ALL_CARDS } from './constants.js';
 import { shuffle, getImagePath, getTypeMultiplier, applyAilment, processAilments, createEnergyPile, getEvolutionStages } from './utils.js';
 import { getSavedDeck } from './deckEditor.js';
 import { applyCardEffect, decreaseCooldowns } from './effects.js';
+import { showZoomPanel, closeZoomPanel } from './main.js';
 
 export let battleState = null;
 let pendingAttacker = null;
@@ -88,7 +89,7 @@ export function drawBattleCard(pid) {
   return true;
 }
 
-// --- Drag‑and‑drop energy functions ---
+// Drag‑and‑drop energy functions
 export function onEnergyDragStart(e, pid, energyIdx) {
   e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'energy', pid, energyIdx }));
   e.dataTransfer.effectAllowed = 'move';
@@ -129,7 +130,7 @@ export function allowDrop(e) {
   e.preventDefault();
 }
 
-// --- Deck viewer for search effects ---
+// Deck viewer for search effects
 export async function viewDeckForSearch(pid, cardType) {
   const p = battleState[`p${pid}`];
   let validCards = p.deck.filter(c => c.category === cardType);
@@ -164,7 +165,28 @@ export async function viewDeckForSearch(pid, cardType) {
   });
 }
 
-// --- Attack and battle functions ---
+// Attack arrow animation
+function animateArrow(fromElement, toElement, callback) {
+  const fromRect = fromElement.getBoundingClientRect();
+  const toRect = toElement.getBoundingClientRect();
+  const startX = fromRect.left + fromRect.width/2;
+  const startY = fromRect.top + fromRect.height/2;
+  const endX = toRect.left + toRect.width/2;
+  const endY = toRect.top + toRect.height/2;
+  const arrow = document.createElement('div');
+  arrow.className = 'attack-arrow';
+  arrow.style.setProperty('--startX', `${startX}px`);
+  arrow.style.setProperty('--startY', `${startY}px`);
+  arrow.style.setProperty('--endX', `${endX - startX}px`);
+  arrow.style.setProperty('--endY', `${endY - startY}px`);
+  document.body.appendChild(arrow);
+  setTimeout(() => {
+    arrow.remove();
+    if(callback) callback();
+  }, 300);
+}
+
+// Attack and battle functions
 export function startAttackSelection(pid, zoneIdx) {
   if(battleState.turn !== pid || battleState.phase !== 'battle') return;
   let attacker = battleState[`p${pid}`].dinoZones[zoneIdx];
@@ -192,7 +214,18 @@ function executeAttack(defenderPid, defenderZoneIdx) {
   let defender = battleState[`p${defenderPid}`].dinoZones[defenderZoneIdx];
   if(!defender) { clearAttackGlow(); pendingAttacker = null; return; }
 
-  // Acrocanthosaurus effect: destroy injured defender
+  const attackerElem = document.getElementById(`dinoImg_${pendingAttacker.pid}_${pendingAttacker.zoneIdx}`);
+  const defenderElem = document.getElementById(`dinoZone_${defenderPid}_${defenderZoneIdx}`);
+  if(attackerElem && defenderElem) {
+    animateArrow(attackerElem, defenderElem, () => {
+      finishAttack(attacker, defender, defenderPid);
+    });
+  } else {
+    finishAttack(attacker, defender, defenderPid);
+  }
+}
+
+function finishAttack(attacker, defender, defenderPid) {
   const acroEffect = applyCardEffect(attacker, pendingAttacker.pid, "attack", { defender, defenderPid, battleState }, addLog);
   if (acroEffect) {
     clearAttackGlow();
@@ -214,7 +247,6 @@ function executeAttack(defenderPid, defenderZoneIdx) {
   }
   let typeMult = getTypeMultiplier(attacker.type, defender.type);
   let attackPower = (attacker.power * typeMult) + (discard * 1000);
-  // Bleed multiplier
   let bleedMult = 1;
   if (defender.ailments && defender.ailments.includes('bleed')) {
     bleedMult = 2;
@@ -233,18 +265,16 @@ function executeAttack(defenderPid, defenderZoneIdx) {
   }
   let damage = Math.max(0, attackPower - defendPower);
   defender.damage = (defender.damage||0) + damage;
-  
-  // Defender flash animation
-  let defenderElem = document.getElementById(`dinoZone_${defenderPid}_${defenderZoneIdx}`);
+
+  let defenderElem = document.getElementById(`dinoZone_${defenderPid}_${pendingAttacker.zoneIdx ? pendingAttacker.zoneIdx : 0}`);
   if (defenderElem) {
     defenderElem.style.transition = 'background-color 0.1s';
     defenderElem.style.backgroundColor = '#ff4d4d';
     setTimeout(() => defenderElem.style.backgroundColor = '', 150);
   }
-  
+
   addLog(`${attacker.name} attacks: ${attackPower} vs ${defendPower} → ${damage} damage.`);
 
-  // Dilophosaurus poison healing
   if (defender.ailments && defender.ailments.includes('poison') && damage > 0) {
     applyCardEffect(null, pendingAttacker.pid, "poisonDamage", { damage, battleState }, addLog);
   }
@@ -285,37 +315,16 @@ function clearAttackGlow() {
   }
 }
 
-// --- Evolution ---
 export async function attemptEvolution(pid, zoneIdx) {
-  if(battleState.turn !== pid) {
-    addLog("Not your turn.");
-    return;
-  }
-  if(battleState.phase !== 'main') {
-    addLog("You can only evolve during Main Phase.");
-    return;
-  }
-  if(battleState.evolutionUsedThisTurn) {
-    addLog("You already evolved once this turn.");
-    return;
-  }
+  if(battleState.turn !== pid) { addLog("Not your turn."); return; }
+  if(battleState.phase !== 'main') { addLog("Only during Main Phase."); return; }
+  if(battleState.evolutionUsedThisTurn) { addLog("Already evolved once this turn."); return; }
   let dino = battleState[`p${pid}`].dinoZones[zoneIdx];
-  if(!dino) {
-    addLog("No dino in that zone.");
-    return;
-  }
+  if(!dino) { addLog("No dino in that zone."); return; }
   let possibleStages = getEvolutionStages(dino);
-  if(possibleStages.length === 0) {
-    addLog(`${dino.name} cannot evolve (no Stage 2 of same type).`);
-    return;
-  }
-  let available = possibleStages.filter(name => 
-    battleState[`p${pid}`].hand.some(c => c.name === name && c.category === 'dino')
-  );
-  if(available.length === 0) {
-    addLog(`You need a Stage 2 ${dino.type} dino in your hand to evolve.`);
-    return;
-  }
+  if(possibleStages.length === 0) { addLog(`${dino.name} cannot evolve (no Stage 2 of same type).`); return; }
+  let available = possibleStages.filter(name => battleState[`p${pid}`].hand.some(c => c.name === name && c.category === 'dino'));
+  if(available.length === 0) { addLog(`Need a Stage 2 ${dino.type} dino in hand.`); return; }
   let chosenName = available[0];
   if(available.length > 1) {
     chosenName = await new Promise(resolve => {
@@ -327,16 +336,11 @@ export async function attemptEvolution(pid, zoneIdx) {
       available.forEach(name => {
         const card = ALL_CARDS.find(c => c.name === name);
         if(card) {
-          const cardDiv = document.createElement("div");
-          cardDiv.className = "search-card";
-          const img = document.createElement("img");
-          img.src = getImagePath(card.name);
+          const cardDiv = document.createElement("div"); cardDiv.className = "search-card";
+          const img = document.createElement("img"); img.src = getImagePath(card.name);
           img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 213'%3E%3Crect width='160' height='213' fill='%23c09a6b'/%3E%3Ctext x='80' y='110' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
           cardDiv.appendChild(img);
-          cardDiv.onclick = () => {
-            resolve(card.name);
-            modal.style.display = "none";
-          };
+          cardDiv.onclick = () => { resolve(card.name); modal.style.display = "none"; };
           container.appendChild(cardDiv);
         }
       });
@@ -346,16 +350,10 @@ export async function attemptEvolution(pid, zoneIdx) {
       container.appendChild(cancelBtn);
       modal.style.display = "flex";
     });
-    if (!chosenName) {
-      addLog("Evolution cancelled.");
-      return;
-    }
+    if (!chosenName) { addLog("Evolution cancelled."); return; }
   }
   let handIndex = battleState[`p${pid}`].hand.findIndex(c => c.name === chosenName && c.category === 'dino');
-  if(handIndex === -1) {
-    addLog(`You no longer have ${chosenName} in hand.`);
-    return;
-  }
+  if(handIndex === -1) { addLog(`No ${chosenName} in hand.`); return; }
   let nextCard = battleState[`p${pid}`].hand[handIndex];
   battleState[`p${pid}`].graveyard.push({...dino});
   battleState[`p${pid}`].dinoZones[zoneIdx] = {...nextCard, damage:0, energyAttached:[], ailments: [], ailmentTurns: {}};
@@ -365,7 +363,6 @@ export async function attemptEvolution(pid, zoneIdx) {
   renderBattleUI();
 }
 
-// --- Starter swap ---
 export function swapStarterWithField(pid, zoneIdx) {
   if(battleState.turn !== pid || battleState.phase !== 'main' || battleState.usedSwap) return;
   let fieldDino = battleState[`p${pid}`].dinoZones[zoneIdx];
@@ -381,21 +378,20 @@ export function swapStarterWithField(pid, zoneIdx) {
 export function moveStarterToField(pid) {
   if(battleState.turn !== pid) return;
   if(battleState.phase !== 'main') return;
-  if(battleState.starterMovedThisTurn) { addLog("You already moved your starter this turn."); return; }
+  if(battleState.starterMovedThisTurn) { addLog("Already moved starter this turn."); return; }
   let p = battleState[`p${pid}`];
-  if(!p.starterZone) { addLog("No starter to move."); return; }
+  if(!p.starterZone) { addLog("No starter."); return; }
   let hasDino = p.dinoZones.some(d => d !== null);
-  if(hasDino) { addLog("You already have dinos on field. Cannot move starter."); return; }
+  if(hasDino) { addLog("Already have dinos on field."); return; }
   let emptySlot = p.dinoZones.findIndex(z => z === null);
   if(emptySlot === -1) { addLog("No empty dino zone."); return; }
   p.dinoZones[emptySlot] = {...p.starterZone, damage:0, energyAttached:[], ailments: p.starterZone.ailments || [], ailmentTurns: p.starterZone.ailmentTurns || {}};
   p.starterZone = null;
   battleState.starterMovedThisTurn = true;
-  addLog(`Moved ${p.dinoZones[emptySlot].name} from starter zone to field.`);
+  addLog(`Moved ${p.dinoZones[emptySlot].name} to field.`);
   renderBattleUI();
 }
 
-// --- Play card from hand (with search effects) ---
 export async function playBattleCardFromHand(pid, handIdx) {
   if(battleState.turn !== pid) return;
   if(battleState.phase !== 'main') { addLog("Only during Main Phase."); return; }
@@ -403,11 +399,11 @@ export async function playBattleCardFromHand(pid, handIdx) {
   let card = p.hand[handIdx];
   if(!card) return;
   if(card.category === 'dino') {
-    if(card.stage !== 1) { addLog("Only Stage 1 can be played directly. Evolve from a Stage 1 on field."); return; }
+    if(card.stage !== 1) { addLog("Only Stage 1 can be played directly."); return; }
     // Compsognathus stacking
     if (card.name === "Compsognathus") {
       let existing = p.dinoZones.findIndex(d => d && d.name === "Compsognathus");
-      if (existing !== -1 && confirm("Stack this Compsognathus on an existing one?")) {
+      if (existing !== -1 && confirm("Stack this Compsognathus?")) {
         let target = p.dinoZones[existing];
         target.power += card.power;
         target.hp += card.hp;
@@ -432,26 +428,11 @@ export async function playBattleCardFromHand(pid, handIdx) {
       p.hand.splice(handIdx,1);
       if(!card.isField) {
         let chosen = null;
-        if(card.name === "Dig site") {
-          chosen = await viewDeckForSearch(pid, 'dino');
-          if(chosen) {
-            let idx = p.deck.findIndex(c => c.id === chosen.id);
-            if(idx !== -1) {
-              p.hand.push(chosen);
-              p.deck.splice(idx,1);
-              addLog(`Added ${chosen.name} to hand.`);
-            }
-          }
-        } else if(card.name === "Palaeontology") {
-          chosen = await viewDeckForSearch(pid, 'move');
-          if(chosen) {
-            let idx = p.deck.findIndex(c => c.id === chosen.id);
-            if(idx !== -1) {
-              p.hand.push(chosen);
-              p.deck.splice(idx,1);
-              addLog(`Added ${chosen.name} to hand.`);
-            }
-          }
+        if(card.name === "Dig site") chosen = await viewDeckForSearch(pid, 'dino');
+        else if(card.name === "Palaeontology") chosen = await viewDeckForSearch(pid, 'move');
+        if(chosen) {
+          let idx = p.deck.findIndex(c => c.id === chosen.id);
+          if(idx !== -1) { p.hand.push(chosen); p.deck.splice(idx,1); addLog(`Added ${chosen.name} to hand.`); }
         }
         let idx = p.researchZones.findIndex(z => z === newCard);
         if(idx !== -1) p.researchZones[idx] = null;
@@ -474,7 +455,6 @@ export async function playBattleCardFromHand(pid, handIdx) {
   renderBattleUI();
 }
 
-// --- Phase and turn control ---
 export function nextPhase() {
   if(battleState.phase === 'main') battleState.phase = 'battle';
   else if(battleState.phase === 'battle') battleState.phase = 'end';
@@ -545,9 +525,7 @@ async function aiTurn() {
       let d = battleState.p2.dinoZones[i];
       if(d) {
         let possible = getEvolutionStages(d);
-        let available = possible.filter(name => 
-          battleState.p2.hand.some(c => c.name === name && c.category === 'dino')
-        );
+        let available = possible.filter(name => battleState.p2.hand.some(c => c.name === name && c.category === 'dino'));
         if(available.length > 0) {
           let chosenName = available[0];
           let handIndex = battleState.p2.hand.findIndex(c => c.name === chosenName && c.category === 'dino');
@@ -612,7 +590,6 @@ async function aiTurn() {
   endTurn();
 }
 
-// --- Graveyard viewer ---
 export function showGY(pid) {
   let p = battleState[`p${pid}`];
   let container = document.getElementById("gyList");
@@ -622,13 +599,12 @@ export function showGY(pid) {
     let img = document.createElement("img"); img.src = getImagePath(card.name);
     img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 213'%3E%3Crect width='160' height='213' fill='%23c09a6b'/%3E%3Ctext x='80' y='110' text-anchor='middle' fill='black' font-size='30'%3E💀%3C/text%3E%3C/svg%3E"; };
     cardDiv.appendChild(img);
-    cardDiv.onclick = () => window.showZoom(card, "gy");
+    cardDiv.onclick = () => showZoomPanel(card, "gy");
     container.appendChild(cardDiv);
   });
   document.getElementById("gyModal").style.display = "flex";
 }
 
-// --- Activation for field research cards ---
 function canActivateResearch(research) {
   if(!research) return false;
   if(research.name === "Abandoned laboratory") return research.energyStored > 0;
@@ -661,14 +637,51 @@ export function activateResearch(pid, zoneIdx) {
   renderBattleUI();
 }
 
-// --- Main render function (with drag‑and‑drop energy pile) ---
+// Apply saved custom zone backgrounds
+function applyZoneBackgrounds() {
+  const saved = localStorage.getItem("zoneBackgrounds");
+  if(saved) {
+    const bgs = JSON.parse(saved);
+    if(bgs.starter) document.querySelectorAll('.starter-zone').forEach(el => el.style.backgroundImage = `url(${bgs.starter})`);
+    if(bgs.dino) document.querySelectorAll('.dino-zone').forEach(el => el.style.backgroundImage = `url(${bgs.dino})`);
+    if(bgs.research) document.querySelectorAll('.research-zone').forEach(el => el.style.backgroundImage = `url(${bgs.research})`);
+    if(bgs.energy) document.querySelectorAll('.energy-zone').forEach(el => el.style.backgroundImage = `url(${bgs.energy})`);
+    if(bgs.field) document.getElementById('fieldZoneDisplay')?.setAttribute('style', `background-image: url(${bgs.field}); background-size: cover;`);
+  }
+}
+
 export function renderBattleUI() {
   let container = document.getElementById("battleContainer");
   if(!battleState) { container.innerHTML = "<div style='text-align:center; font-size:2rem;'>Start a match first</div>"; return; }
-  let html = `<div class="player-board"><h3>🤖 AI (Player 2)</h3><div class="field-grid"><div class="grid-row mirror-row" id="battleP2TopRow"></div><div class="grid-row mirror-row" id="battleP2BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP2Hand"></div></div><div class="deck-grave-stack"><div class="stack-item" onclick="window.showGY(2)">💀 GRAVEYARD (${battleState.p2.graveyard.length})</div><div class="stack-item" onclick="window.drawBattleCard(2)">📖 DECK ${battleState.p2.deck.length}</div></div><div class="energy-pile" id="energyPile2" ondragover="window.allowDrop(event)" ondrop="window.onEnergyDrop(event,2,'energy',-1)"></div></div>`;
-  html += `<div style="background:#2d2418aa; border-radius:48px; margin:24px 0; padding:20px;text-align:center"><span>🌍 FIELD ZONE</span><div>None</div></div>`;
-  html += `<div class="player-board"><h3>🔥 YOU (Player 1)</h3><div class="field-grid"><div class="grid-row" id="battleP1TopRow"></div><div class="grid-row" id="battleP1BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP1Hand"></div></div><div class="deck-grave-stack"><div class="stack-item" onclick="window.showGY(1)">💀 GRAVEYARD (${battleState.p1.graveyard.length})</div><div class="stack-item" onclick="window.drawBattleCard(1)">📖 DECK ${battleState.p1.deck.length}</div></div><div class="energy-pile" id="energyPile1" ondragover="window.allowDrop(event)" ondrop="window.onEnergyDrop(event,1,'energy',-1)"></div></div>`;
-  html += `<div class="phase-bar"><div class="phase-btn active" id="phaseButton">⚔️ ${battleState.phase.toUpperCase()} PHASE (click to advance)</div><button id="endTurnBattleBtn">⏩ END TURN</button></div><div class="log" id="gameLog"></div>`;
+  let html = `<div class="battle-layout">
+    <div class="zoom-panel" id="zoomPanel">
+      <div class="zoom-panel-inner">
+        <img id="zoomPanelImage" src="">
+        <div id="zoomPanelText" class="zoom-panel-text"></div>
+        <button id="playFromZoomBtn" style="display:none;" onclick="window.playFromZoom()">🎮 Play Card</button>
+        <button onclick="window.closeZoomPanel()">Close</button>
+      </div>
+    </div>
+    <div class="battle-field">
+      <div class="player-board opponent-board">
+        <h3>🤖 ${battleState.turn === 2 ? "AI (Your turn)" : "AI (Opponent)"}</h3>
+        <div class="field-grid"><div class="grid-row mirror-row" id="battleP2TopRow"></div><div class="grid-row mirror-row" id="battleP2BottomRow"></div></div>
+        <div class="hand-area"><div class="hand-container" id="battleP2Hand"></div></div>
+        <div class="deck-grave-stack"><div class="stack-item" onclick="window.showGY(2)">💀 GRAVEYARD (${battleState.p2.graveyard.length})</div><div class="stack-item" onclick="window.drawBattleCard(2)">📖 DECK ${battleState.p2.deck.length}</div></div>
+        <div class="energy-pile" id="energyPile2" ondragover="window.allowDrop(event)" ondrop="window.onEnergyDrop(event,2,'energy',-1)"></div>
+      </div>
+      <div id="fieldZoneDisplay" style="background:#2d2418aa; border-radius:48px; margin:24px 0; padding:20px; text-align:center;"><span>🌍 FIELD ZONE</span><div>None</div></div>
+      <div class="player-board">
+        <h3>🔥 YOU (Player 1)</h3>
+        <div class="field-grid"><div class="grid-row" id="battleP1TopRow"></div><div class="grid-row" id="battleP1BottomRow"></div></div>
+        <div class="hand-area"><div class="hand-container" id="battleP1Hand"></div></div>
+        <div class="deck-grave-stack"><div class="stack-item" onclick="window.showGY(1)">💀 GRAVEYARD (${battleState.p1.graveyard.length})</div><div class="stack-item" onclick="window.drawBattleCard(1)">📖 DECK ${battleState.p1.deck.length}</div></div>
+        <div class="energy-pile" id="energyPile1" ondragover="window.allowDrop(event)" ondrop="window.onEnergyDrop(event,1,'energy',-1)"></div>
+      </div>
+    </div>
+  </div>
+  <div class="phase-bar"><div class="phase-btn active" id="phaseButton">⚔️ ${battleState.phase.toUpperCase()} PHASE (click to advance)</div><button id="endTurnBattleBtn">⏩ END TURN</button></div>
+  <div class="log" id="gameLog"></div>`;
   container.innerHTML = html;
   updateLogUI();
 
@@ -678,7 +691,7 @@ export function renderBattleUI() {
     let bottomRow = document.getElementById(`battleP${pid}BottomRow`);
     if(!topRow) continue;
     let starterImg = getImagePath(pData.starterZone?.name || 'placeholder');
-    topRow.innerHTML = `<div class="zone-card starter-zone" onclick="window.moveStarterToField(${pid})"><img class="card-image" src="${starterImg}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E⭐%3C/text%3E%3C/svg%3E'" onclick="event.stopPropagation(); window.showZoom(pData.starterZone, 'field')"><div class="card-stats"><span>❤️${pData.starterZone?.hp || 0}</span></div></div>`;
+    topRow.innerHTML = `<div class="zone-card starter-zone" onclick="window.moveStarterToField(${pid})"><img class="card-image" src="${starterImg}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E⭐%3C/text%3E%3C/svg%3E'" onclick="event.stopPropagation(); window.showZoomPanel(pData.starterZone, 'field')"><div class="card-stats"><span>❤️${pData.starterZone?.hp || 0}</span></div></div>`;
     for(let i=0;i<4;i++) {
       let d = pData.dinoZones[i];
       let currentHp = d ? d.hp - (d.damage||0) : 0;
@@ -689,10 +702,15 @@ export function renderBattleUI() {
         if(!battleState.usedSwap) buttons += `<button class="action-btn" onclick="window.swapStarterWithField(${pid},${i})">🔄 SWAP STARTER</button>`;
       }
       let imgSrc = d ? getImagePath(d.name) : '';
-      let energyCards = d && d.energyAttached ? d.energyAttached.map(()=>`<div class="energy-card"></div>`).join('') : "";
+      let energyCount = d && d.energyAttached ? d.energyAttached.length : 0;
+      let energyDisplay = "";
+      if(energyCount > 0) {
+        let topEnergy = d.energyAttached[energyCount-1];
+        energyDisplay = `<div class="energy-stack"><div class="energy-card" style="background-image: url(${getImagePath(topEnergy.name)}); background-size: cover;"></div><div class="energy-count">x${energyCount}</div></div>`;
+      }
       let ailmentClass = d?.ailments ? (d.ailments.includes('poison')?"poisoned": d.ailments.includes('bleed')?"bleeding": d.ailments.includes('paralyzed')?"paralyzed": d.ailments.includes('submerged')?"submerged":"") : "";
       topRow.innerHTML += `<div class="zone-card dino-zone ${ailmentClass}" id="dinoZone_${pid}_${i}" ondragover="window.allowDrop(event)" ondrop="window.onEnergyDrop(event,${pid},'dino',${i})">
-        ${d ? `<div class="dino-card-container"><div class="status-icons">${d.ailments ? (d.ailments.includes('poison')?"💜 ": d.ailments.includes('bleed')?"❤️‍🩹 ": d.ailments.includes('paralyzed')?"💛 ": d.ailments.includes('submerged')?"💙 ":"") : ""}</div><img class="card-image" id="dinoImg_${pid}_${i}" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E${d.name}%3C/text%3E%3C/svg%3E'" onclick="window.showZoom(d, 'field')"><div class="energy-stack">${energyCards}</div><div class="card-stats"><span>❤️${currentHp}/${d.hp}</span></div><div class="action-buttons">${buttons}</div></div>` : `<div class="card-image" style="background:#5e3a2e; display:flex; align-items:center; justify-content:center;">Empty</div>`}
+        ${d ? `<div class="dino-card-container"><div class="status-icons">${d.ailments ? (d.ailments.includes('poison')?"💜 ": d.ailments.includes('bleed')?"❤️‍🩹 ": d.ailments.includes('paralyzed')?"💛 ": d.ailments.includes('submerged')?"💙 ":"") : ""}</div><img class="card-image" id="dinoImg_${pid}_${i}" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E${d.name}%3C/text%3E%3C/svg%3E'" onclick="window.showZoomPanel(d, 'field')">${energyDisplay}<div class="card-stats"><span>❤️${currentHp}/${d.hp}</span></div><div class="action-buttons">${buttons}</div></div>` : `<div class="card-image" style="background:#5e3a2e; display:flex; align-items:center; justify-content:center;">Empty</div>`}
       </div>`;
     }
     bottomRow.innerHTML = `<div class="zone-card energy-zone"><div class="card-image" style="background:#c9510c; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">⚡ ENERGY ZONE</div><div class="card-stats">Drag an energy card to a dino or research</div></div>`;
@@ -702,10 +720,10 @@ export function renderBattleUI() {
       let canActivate = r && canActivateResearch(r);
       let activateBtn = canActivate ? `<button class="action-btn ability" onclick="window.activateResearch(${pid},${i})">⚡ ACTIVATE</button>` : '';
       bottomRow.innerHTML += `<div class="zone-card research-zone" ondragover="window.allowDrop(event)" ondrop="window.onEnergyDrop(event,${pid},'research',${i})">
-        ${r ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E${r.name}%3C/text%3E%3C/svg%3E'" onclick="window.showZoom(r, 'field')"><div class="card-stats">${r.name}</div><div class="action-buttons">${activateBtn}</div>` : `<div class="card-image" style="background:#2a4b55; display:flex; align-items:center; justify-content:center;">Empty</div>`}
+        ${r ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E${r.name}%3C/text%3E%3C/svg%3E'" onclick="window.showZoomPanel(r, 'field')"><div class="card-stats">${r.name}</div><div class="action-buttons">${activateBtn}</div>` : `<div class="card-image" style="background:#2a4b55; display:flex; align-items:center; justify-content:center;">Empty</div>`}
       </div>`;
     }
-    // Energy pile – physical cards
+    // Energy pile
     let energyPileDiv = document.getElementById(`energyPile${pid}`);
     energyPileDiv.innerHTML = "";
     pData.energyPile.forEach((energy, idx) => {
@@ -728,15 +746,16 @@ export function renderBattleUI() {
       let cardDiv = document.createElement("div"); cardDiv.className = "hand-card";
       let img = document.createElement("img"); img.src = getImagePath(card.name);
       img.onerror = function() { this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 280'%3E%3Crect width='200' height='280' fill='%23c09a6b'/%3E%3Ctext x='100' y='150' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
-      img.addEventListener("click", (e) => { e.stopPropagation(); window.showZoom(card, "hand", idx); });
+      img.addEventListener("click", (e) => { e.stopPropagation(); showZoomPanel(card, "hand", idx); });
       cardDiv.appendChild(img); handContainer.appendChild(cardDiv);
     });
   }
   document.getElementById("phaseButton")?.addEventListener("click", nextPhase);
   document.getElementById("endTurnBattleBtn")?.addEventListener("click", endTurn);
+  applyZoneBackgrounds();
 }
 
-// Expose needed functions globally
+// Expose globals
 window.startAttackSelection = startAttackSelection;
 window.attemptEvolution = attemptEvolution;
 window.swapStarterWithField = swapStarterWithField;
@@ -747,3 +766,11 @@ window.onEnergyDragStart = onEnergyDragStart;
 window.onEnergyDrop = onEnergyDrop;
 window.allowDrop = allowDrop;
 window.activateResearch = activateResearch;
+window.showZoomPanel = showZoomPanel;
+window.closeZoomPanel = closeZoomPanel;
+window.playFromZoom = () => {
+  if(window.currentZoomHandIdx !== undefined && battleState) {
+    playBattleCardFromHand(battleState.turn, window.currentZoomHandIdx);
+    closeZoomPanel();
+  }
+};
