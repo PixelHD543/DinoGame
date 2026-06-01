@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Dino Duel TCG - Complete Edition</title>
+  <title>Dino Duel TCG</title>
   <style>
     * { box-sizing: border-box; user-select: none; }
     body {
@@ -54,7 +54,6 @@
       transition: 0.1s;
     }
     .danger-btn { background: #aa3e1c; color: white; }
-    /* Battle layout */
     .player-board {
       background: #1e2a1cdd; border-radius: 40px;
       padding: 20px; margin-bottom: 30px;
@@ -227,12 +226,10 @@
   </style>
 </head>
 <body>
-<!-- Modals -->
 <div id="starterModal" class="modal"><div class="modal-content"><h3>Choose your Starter Dino</h3><div id="starterChoices" class="search-result-grid"></div></div></div>
 <div id="searchModal" class="modal"><div class="modal-content"><h3 id="searchTitle">Select a card</h3><div id="searchResults" class="search-result-grid"></div><button onclick="closeSearchModal()">Cancel</button></div></div>
 <div id="gyModal" class="modal"><div class="modal-content"><h3>Graveyard</h3><div id="gyList" class="search-result-grid"></div><button onclick="closeGYModal()">Close</button></div></div>
 
-<!-- PAGES -->
 <div id="mainMenuPage" class="page active">
   <h1 style="text-align:center;">🦖 DINO DUEL TCG 🦕</h1>
   <div class="menu-buttons">
@@ -282,48 +279,48 @@
 
 <script>
 // --------------------------------------------------------------
-// 1. CARD DATABASE (All dinos, moves, research)
+// 1. CARD DATABASE
 // --------------------------------------------------------------
 const CARD_CATALOG = {
   dinos: [
-    { id:"Acrocanthosaurus", name:"Acrocanthosaurus", type:"fire", stage:2, power:2000, hp:3000, effect:"If attacks injured dino, destroy it (once every 3 turns)", imageEmoji:"🔥", category:"dino" },
-    { id:"Allosaurus", name:"Allosaurus", type:"fire", stage:2, power:3000, hp:3000, effect:"Doubles bleed damage", imageEmoji:"🔥", category:"dino" },
-    { id:"Baby Ichthyosaurus", name:"Baby Ichthyosaurus", type:"water", stage:1, power:100, hp:300, effect:"Add 1 energy to this card once per turn", imageEmoji:"💧", category:"dino", ability: { cost:0, effect:"add self energy" } },
-    { id:"Baby Kronosaurus", name:"Baby Kronosaurus", type:"water", stage:1, power:800, hp:700, effect:"Remove 1 energy from this card to add 1 energy to any dino", imageEmoji:"💧", category:"dino", ability: { cost:1, effect:"transfer energy" } },
-    { id:"Baby Megalodon", name:"Baby Megalodon", type:"water", stage:1, power:200, hp:1000, effect:"Starter: add water dino; Field: must remove 1 energy or destroy", imageEmoji:"💧", category:"dino" },
-    { id:"Baby Mosaasur", name:"Baby Mosaasur", type:"water", stage:1, power:200, hp:1000, effect:"If submerged end of turn, add 1 energy to any dino", imageEmoji:"💧", category:"dino" },
-    { id:"Baby Plesiosaur", name:"Baby Plesiosaur", type:"water", stage:1, power:250, hp:500, effect:"Starter: discard energy to search research", imageEmoji:"💧", category:"dino" },
-    { id:"Chasmosaurus", name:"Chasmosaurus", type:"grass", stage:2, power:1500, hp:2000, effect:"Prevents bleed on your dinos. Starter reflects bleed", imageEmoji:"🌿", category:"dino" },
-    { id:"Compsognathus", name:"Compsognathus", type:"electric", stage:1, power:250, hp:250, effect:"Can stack on top of other Compsognathus", imageEmoji:"⚡", category:"dino", stacking: true },
-    { id:"Concavenator", name:"Concavenator", type:"electric", stage:1, power:700, hp:500, effect:"When sent to GY, special Pack token", imageEmoji:"⚡", category:"dino" },
-    { id:"Dilophosaurus", name:"Dilophosaurus", type:"electric", stage:1, power:1000, hp:500, effect:"When opponent takes poison damage, gain half as HP", imageEmoji:"⚡", category:"dino" },
-    { id:"Dunkleosteus", name:"Dunkleosteus", type:"water", stage:2, power:1200, hp:4000, effect:"Remove 1 energy to add Whirlpool to hand", imageEmoji:"💧", category:"dino", ability: { cost:1, effect:"add whirlpool" } },
-    { id:"Giganotosaurus", name:"Giganotosaurus", type:"fire", stage:2, power:4000, hp:4000, effect:"When discarding energy to attack, double cost", imageEmoji:"🔥", category:"dino" },
-    { id:"Herrerasaurus", name:"Herrerasaurus", type:"electric", stage:1, power:600, hp:800, effect:"When evolved from Baby Velociraptor, special Pack token", imageEmoji:"⚡", category:"dino" },
-    { id:"Ichthyosaurus", name:"Ichthyosaurus", type:"water", stage:2, power:1500, hp:1500, effect:"Submerged: discard energy or surface. End turn add Baby Ichthyosaurus", imageEmoji:"💧", category:"dino" },
-    { id:"Kronosaurus", name:"Kronosaurus", type:"water", stage:2, power:1200, hp:3500, effect:"Remove energy from opponent dino. If starter, destroy random opponent card", imageEmoji:"💧", category:"dino", ability: { cost:1, effect:"remove opponent energy" } },
-    { id:"Lokiceratops", name:"Lokiceratops", type:"grass", stage:2, power:1600, hp:1900, effect:"Gains power equal to HP loss", imageEmoji:"🌿", category:"dino" },
-    { id:"Megalodon", name:"Megalodon", type:"water", stage:2, power:3200, hp:2700, effect:"Remove energy from opponent dino. If starter, destroy random opponent card", imageEmoji:"💧", category:"dino", ability: { cost:1, effect:"remove opponent energy" } },
-    { id:"Mosasaur", name:"Mosasaur", type:"water", stage:2, power:3000, hp:3200, effect:"Gain counters while submerged; remove for damage", imageEmoji:"💧", category:"dino" },
-    { id:"Nasutoceratops", name:"Nasutoceratops", type:"grass", stage:2, power:1700, hp:2400, effect:"Your dinos cannot be poisoned", imageEmoji:"🌿", category:"dino" },
-    { id:"Natures Revenge", name:"Natures Revenge", type:"grass", stage:3, power:4000, hp:4000, effect:"Immune to card effects and ailments", imageEmoji:"🌿", category:"dino" },
-    { id:"Plesiosaur", name:"Plesiosaur", type:"water", stage:2, power:2500, hp:1800, effect:"Attack: send 2 opponent cards to GY without seeing", imageEmoji:"💧", category:"dino" },
-    { id:"Spinosaurus", name:"Spinosaurus", type:"water", stage:2, power:2500, hp:4000, effect:"If submerged at start of turn, submerge opponent dino; must stay submerged", imageEmoji:"💧", category:"dino" },
-    { id:"Styracosaurus", name:"Styracosaurus", type:"grass", stage:1, power:900, hp:1100, effect:"Prevents submerge on your dinos", imageEmoji:"🌿", category:"dino" },
-    { id:"Triceratops", name:"Triceratops", type:"grass", stage:2, power:2000, hp:4000, effect:"Immune to card effects and ailments", imageEmoji:"🌿", category:"dino" },
-    { id:"Tyrannosaurus Rex", name:"Tyrannosaurus Rex", type:"fire", stage:2, power:3000, hp:3000, effect:"Can attack twice per turn", imageEmoji:"🔥", category:"dino" },
-    { id:"Velociraptor", name:"Velociraptor", type:"electric", stage:1, power:500, hp:500, effect:"When evolved from Baby Velociraptor, special Pack token", imageEmoji:"⚡", category:"dino" },
-    { id:"Wrath Of The Sea", name:"Wrath Of The Sea", type:"water", stage:3, power:3500, hp:7500, effect:"When evolved or in starter, all dinos submerged. Opponent can pay 2 energy per dino to surface", imageEmoji:"💧", category:"dino" },
-    { id:"Baby rex", name:"Baby rex", type:"fire", stage:1, power:1500, hp:2000, effect:"", imageEmoji:"🔥", category:"dino" },
-    { id:"T-rex", name:"T-rex", type:"fire", stage:2, power:3000, hp:3500, effect:"", imageEmoji:"🔥", category:"dino" },
-    { id:"Omega Rex", name:"Omega Rex", type:"fire", stage:3, power:3000, hp:3000, effect:"", imageEmoji:"🔥", category:"dino" },
-    { id:"Baby Triceratops", name:"Baby Triceratops", type:"grass", stage:1, power:2000, hp:2500, effect:"", imageEmoji:"🌿", category:"dino" },
-    { id:"Baby Velociraptor", name:"Baby Velociraptor", type:"electric", stage:1, power:1000, hp:800, effect:"", imageEmoji:"⚡", category:"dino" },
-    { id:"Baby Ankylosaurus", name:"Baby Ankylosaurus", type:"ground", stage:1, power:1500, hp:2500, effect:"", imageEmoji:"🛡️", category:"dino" },
-    { id:"Ankylosaurus", name:"Ankylosaurus", type:"ground", stage:2, power:2000, hp:3500, effect:"", imageEmoji:"🛡️", category:"dino" },
-    { id:"Baby Argentinosaurus", name:"Baby Argentinosaurus", type:"normal", stage:1, power:1500, hp:3000, effect:"", imageEmoji:"🌿", category:"dino" },
-    { id:"Argentinosaurus", name:"Argentinosaurus", type:"normal", stage:2, power:3500, hp:7000, effect:"", imageEmoji:"🌿", category:"dino" },
-    { id:"Carnotaurus", name:"Carnotaurus", type:"wind", stage:2, power:3500, hp:2000, effect:"", imageEmoji:"💨", category:"dino" }
+    { id:"Acrocanthosaurus", name:"Acrocanthosaurus", type:"fire", stage:2, power:2000, hp:3000, effect:"If attacks injured dino, destroy it (once every 3 turns)", category:"dino" },
+    { id:"Allosaurus", name:"Allosaurus", type:"fire", stage:2, power:3000, hp:3000, effect:"Doubles bleed damage", category:"dino" },
+    { id:"Baby Ichthyosaurus", name:"Baby Ichthyosaurus", type:"water", stage:1, power:100, hp:300, effect:"Add 1 energy to this card once per turn", category:"dino", ability: { cost:0, effect:"add self energy" } },
+    { id:"Baby Kronosaurus", name:"Baby Kronosaurus", type:"water", stage:1, power:800, hp:700, effect:"Remove 1 energy from this card to add 1 energy to any dino", category:"dino", ability: { cost:1, effect:"transfer energy" } },
+    { id:"Baby Megalodon", name:"Baby Megalodon", type:"water", stage:1, power:200, hp:1000, effect:"Starter: add water dino; Field: must remove 1 energy or destroy", category:"dino" },
+    { id:"Baby Mosaasur", name:"Baby Mosaasur", type:"water", stage:1, power:200, hp:1000, effect:"If submerged end of turn, add 1 energy to any dino", category:"dino" },
+    { id:"Baby Plesiosaur", name:"Baby Plesiosaur", type:"water", stage:1, power:250, hp:500, effect:"Starter: discard energy to search research", category:"dino" },
+    { id:"Chasmosaurus", name:"Chasmosaurus", type:"grass", stage:2, power:1500, hp:2000, effect:"Prevents bleed on your dinos. Starter reflects bleed", category:"dino" },
+    { id:"Compsognathus", name:"Compsognathus", type:"electric", stage:1, power:250, hp:250, effect:"Can stack on top of other Compsognathus", category:"dino", stacking: true },
+    { id:"Concavenator", name:"Concavenator", type:"electric", stage:1, power:700, hp:500, effect:"When sent to GY, special Pack token", category:"dino" },
+    { id:"Dilophosaurus", name:"Dilophosaurus", type:"electric", stage:1, power:1000, hp:500, effect:"When opponent takes poison damage, gain half as HP", category:"dino" },
+    { id:"Dunkleosteus", name:"Dunkleosteus", type:"water", stage:2, power:1200, hp:4000, effect:"Remove 1 energy to add Whirlpool to hand", category:"dino", ability: { cost:1, effect:"add whirlpool" } },
+    { id:"Giganotosaurus", name:"Giganotosaurus", type:"fire", stage:2, power:4000, hp:4000, effect:"When discarding energy to attack, double cost", category:"dino" },
+    { id:"Herrerasaurus", name:"Herrerasaurus", type:"electric", stage:1, power:600, hp:800, effect:"When evolved from Baby Velociraptor, special Pack token", category:"dino" },
+    { id:"Ichthyosaurus", name:"Ichthyosaurus", type:"water", stage:2, power:1500, hp:1500, effect:"Submerged: discard energy or surface. End turn add Baby Ichthyosaurus", category:"dino" },
+    { id:"Kronosaurus", name:"Kronosaurus", type:"water", stage:2, power:1200, hp:3500, effect:"Remove energy from opponent dino. If starter, destroy random opponent card", category:"dino", ability: { cost:1, effect:"remove opponent energy" } },
+    { id:"Lokiceratops", name:"Lokiceratops", type:"grass", stage:2, power:1600, hp:1900, effect:"Gains power equal to HP loss", category:"dino" },
+    { id:"Megalodon", name:"Megalodon", type:"water", stage:2, power:3200, hp:2700, effect:"Remove energy from opponent dino. If starter, destroy random opponent card", category:"dino", ability: { cost:1, effect:"remove opponent energy" } },
+    { id:"Mosasaur", name:"Mosasaur", type:"water", stage:2, power:3000, hp:3200, effect:"Gain counters while submerged; remove for damage", category:"dino" },
+    { id:"Nasutoceratops", name:"Nasutoceratops", type:"grass", stage:2, power:1700, hp:2400, effect:"Your dinos cannot be poisoned", category:"dino" },
+    { id:"Natures Revenge", name:"Natures Revenge", type:"grass", stage:3, power:4000, hp:4000, effect:"Immune to card effects and ailments", category:"dino" },
+    { id:"Plesiosaur", name:"Plesiosaur", type:"water", stage:2, power:2500, hp:1800, effect:"Attack: send 2 opponent cards to GY without seeing", category:"dino" },
+    { id:"Spinosaurus", name:"Spinosaurus", type:"water", stage:2, power:2500, hp:4000, effect:"If submerged at start of turn, submerge opponent dino; must stay submerged", category:"dino" },
+    { id:"Styracosaurus", name:"Styracosaurus", type:"grass", stage:1, power:900, hp:1100, effect:"Prevents submerge on your dinos", category:"dino" },
+    { id:"Triceratops", name:"Triceratops", type:"grass", stage:2, power:2000, hp:4000, effect:"Immune to card effects and ailments", category:"dino" },
+    { id:"Tyrannosaurus Rex", name:"Tyrannosaurus Rex", type:"fire", stage:2, power:3000, hp:3000, effect:"Can attack twice per turn", category:"dino" },
+    { id:"Velociraptor", name:"Velociraptor", type:"electric", stage:1, power:500, hp:500, effect:"When evolved from Baby Velociraptor, special Pack token", category:"dino" },
+    { id:"Wrath Of The Sea", name:"Wrath Of The Sea", type:"water", stage:3, power:3500, hp:7500, effect:"When evolved or in starter, all dinos submerged. Opponent can pay 2 energy per dino to surface", category:"dino" },
+    { id:"Baby rex", name:"Baby rex", type:"fire", stage:1, power:1500, hp:2000, effect:"", category:"dino" },
+    { id:"T-rex", name:"T-rex", type:"fire", stage:2, power:3000, hp:3500, effect:"", category:"dino" },
+    { id:"Omega Rex", name:"Omega Rex", type:"fire", stage:3, power:3000, hp:3000, effect:"", category:"dino" },
+    { id:"Baby Triceratops", name:"Baby Triceratops", type:"grass", stage:1, power:2000, hp:2500, effect:"", category:"dino" },
+    { id:"Baby Velociraptor", name:"Baby Velociraptor", type:"electric", stage:1, power:1000, hp:800, effect:"", category:"dino" },
+    { id:"Baby Ankylosaurus", name:"Baby Ankylosaurus", type:"ground", stage:1, power:1500, hp:2500, effect:"", category:"dino" },
+    { id:"Ankylosaurus", name:"Ankylosaurus", type:"ground", stage:2, power:2000, hp:3500, effect:"", category:"dino" },
+    { id:"Baby Argentinosaurus", name:"Baby Argentinosaurus", type:"normal", stage:1, power:1500, hp:3000, effect:"", category:"dino" },
+    { id:"Argentinosaurus", name:"Argentinosaurus", type:"normal", stage:2, power:3500, hp:7000, effect:"", category:"dino" },
+    { id:"Carnotaurus", name:"Carnotaurus", type:"wind", stage:2, power:3500, hp:2000, effect:"", category:"dino" }
   ],
   moves: [
     { id:"Lightning Attack", name:"Lightning Attack", type:"electric", cost:1, effect:"Paralyze defender", category:"move", appliesAilment:"paralyzed" },
@@ -343,16 +340,22 @@ function createEnergyPile() { let pile = []; for(let i=0;i<2;i++) ENERGY_TYPES.f
 
 function shuffle(arr) { for(let i=arr.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
 function getImagePath(name) { return `images/${encodeURIComponent(name)}.png`; }
+function createPlaceholderImg(cardName) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'><rect width='300' height='400' fill='#c09a6b'/><text x='150' y='200' text-anchor='middle' fill='black' font-size='24' font-weight='bold'>${cardName}</text><text x='150' y='250' text-anchor='middle' fill='black' font-size='30'>🃏</text></svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+function setImageWithFallback(img, name) {
+  img.src = getImagePath(name);
+  img.onerror = () => { img.src = createPlaceholderImg(name); };
+}
 function getTypeMultiplier(at, dt) { const eff = { water:{strong:"fire",weak:"electric"}, fire:{strong:"grass",weak:"water"}, grass:{strong:"ground",weak:"fire"}, ground:{strong:"electric",weak:"grass"}, electric:{strong:"water",weak:"ground"} }; if(!at || !dt) return 1; if(eff[at]?.strong===dt) return 2; if(eff[at]?.weak===dt) return 0.5; return 1; }
 function applyAilment(dino,a,t=1){ if(!dino.ailments)dino.ailments=[]; if(!dino.ailments.includes(a)){ dino.ailments.push(a); dino.ailmentTurns=dino.ailmentTurns||{}; dino.ailmentTurns[a]=t; } else dino.ailmentTurns[a]=Math.max(dino.ailmentTurns[a]||0,t); }
 function removeAilment(dino,a){ if(dino.ailments){ dino.ailments=dino.ailments.filter(aa=>aa!==a); if(dino.ailmentTurns) delete dino.ailmentTurns[a]; } }
-
 function getEvolutionStages(dino) {
   if(dino.stage !== 1) return [];
   const stages = ALL_CARDS.filter(c => c.category === 'dino' && c.stage === 2 && c.type === dino.type);
   return stages.map(s => s.name);
 }
-
 // Deck storage
 let savedDecks = {};
 function loadDecks() { const s = localStorage.getItem("dinoDecks"); if(s) savedDecks = JSON.parse(s); else savedDecks = { p1_deck1:[], p1_deck2:[], p1_deck3:[], p2_deck1:[], p2_deck2:[], p2_deck3:[] }; }
@@ -360,18 +363,14 @@ function saveDecks() { localStorage.setItem("dinoDecks", JSON.stringify(savedDec
 function getDeck(key) { return savedDecks[key] || []; }
 function setDeck(key, deck) { savedDecks[key] = deck; saveDecks(); }
 loadDecks();
-
-// DOM helpers
 function closeSearchModal() { document.getElementById("searchModal").style.display = "none"; }
 function closeGYModal() { document.getElementById("gyModal").style.display = "none"; }
-
 // Navigation
 function showMainMenu() { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("mainMenuPage").classList.add("active"); }
 function showDeckEditor() { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("deckEditorPage").classList.add("active"); initDeckEditor(); }
 function showBattlePage() { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("battlePage").classList.add("active"); initBattlePage(); }
 function showRulesPage() { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("rulesPage").classList.add("active"); }
 window.showMainMenu = showMainMenu;
-
 document.querySelectorAll(".menu-card").forEach(card => {
   card.addEventListener("click", () => {
     if(card.getAttribute("data-page") === "deckEditor") showDeckEditor();
@@ -380,7 +379,6 @@ document.querySelectorAll(".menu-card").forEach(card => {
     else if(card.getAttribute("data-page") === "rules") showRulesPage();
   });
 });
-
 // Deck Editor
 let currentDeckKey = "p1_deck1";
 let currentDeckCards = [];
@@ -392,8 +390,8 @@ function renderCardPool() {
   const filtered = ALL_CARDS.filter(c => c.name.toLowerCase().includes(cardSearchFilter.toLowerCase()));
   filtered.forEach(card => {
     const div = document.createElement("div"); div.className = "editable-card";
-    const img = document.createElement("img"); img.src = getImagePath(card.name);
-    img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 180'%3E%3Crect width='140' height='180' fill='%23c09a6b'/%3E%3Ctext x='70' y='100' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
+    const img = document.createElement("img");
+    setImageWithFallback(img, card.name);
     div.appendChild(img);
     div.onclick = () => { if(currentDeckCards.length<30) { currentDeckCards.push({id:card.id, category:card.category}); renderCurrentDeck(); } else alert("Max 30 cards"); };
     container.appendChild(div);
@@ -407,8 +405,8 @@ function renderCurrentDeck() {
     const full = ALL_CARDS.find(c => c.id === ref.id && c.category === ref.category);
     if(!full) return;
     const slot = document.createElement("div"); slot.className = "deck-slot";
-    const img = document.createElement("img"); img.src = getImagePath(full.name);
-    img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' fill='%23c09a6b'/%3E%3Ctext x='50' y='80' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
+    const img = document.createElement("img");
+    setImageWithFallback(img, full.name);
     const nameSpan = document.createElement("span"); nameSpan.innerText = full.name;
     const delBtn = document.createElement("button"); delBtn.innerText = "❌"; delBtn.onclick = () => { currentDeckCards.splice(idx,1); renderCurrentDeck(); };
     slot.append(img, nameSpan, delBtn);
@@ -427,14 +425,12 @@ function initDeckEditor() {
   document.getElementById("cardSearch").oninput = (e) => { cardSearchFilter = e.target.value; renderCardPool(); };
   renderCardPool(); loadDeck();
 }
-
-// Battle (simplified but fully functional)
+// Battle
 let battleState = null;
 let pendingAttacker = null;
 let gameLog = [];
 function addLog(msg) { gameLog.unshift(msg); if(gameLog.length>20) gameLog.pop(); updateLogUI(); }
 function updateLogUI() { const logDiv = document.getElementById("gameLog"); if(logDiv) logDiv.innerHTML = gameLog.map(l=>`🦖 ${l}`).join('<br>'); }
-
 async function startMatch(p1DeckRef, p2DeckRef) {
   function expandDeck(refs) {
     let full = [];
@@ -457,7 +453,6 @@ async function startMatch(p1DeckRef, p2DeckRef) {
   renderBattleUI();
   addLog("Match started. Player 1 turn. Click DECK to draw.");
 }
-
 async function selectStarterForPlayer(pid) {
   return new Promise((resolve) => {
     let p = battleState[`p${pid}`];
@@ -486,8 +481,8 @@ async function selectStarterForPlayer(pid) {
       container.innerHTML = "";
       stage1s.forEach(card => {
         const cardDiv = document.createElement("div"); cardDiv.className = "search-card";
-        const img = document.createElement("img"); img.src = getImagePath(card.name);
-        img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 213'%3E%3Crect width='160' height='213' fill='%23c09a6b'/%3E%3Ctext x='80' y='110' text-anchor='middle' fill='black' font-size='30'%3E🥚%3C/text%3E%3C/svg%3E"; };
+        const img = document.createElement("img");
+        setImageWithFallback(img, card.name);
         cardDiv.appendChild(img);
         cardDiv.onclick = () => {
           p.starterZone = {...card, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
@@ -502,7 +497,6 @@ async function selectStarterForPlayer(pid) {
     }
   });
 }
-
 function drawBattleCard(pid) {
   if(battleState.turn !== pid || battleState.drawnThisTurn) return false;
   let p = battleState[`p${pid}`];
@@ -512,7 +506,6 @@ function drawBattleCard(pid) {
   renderBattleUI();
   return true;
 }
-
 function onEnergyDragStart(e, pid, idx) { e.dataTransfer.setData('text/plain', JSON.stringify({pid,idx})); }
 function onEnergyDrop(e, targetPid, type, zoneIdx) {
   e.preventDefault();
@@ -541,7 +534,6 @@ function onEnergyDrop(e, targetPid, type, zoneIdx) {
   renderBattleUI();
 }
 function allowDrop(e) { e.preventDefault(); }
-
 function startAttackSelection(pid, zoneIdx) {
   if(battleState.turn !== pid || battleState.phase !== 'battle') return;
   let attacker = battleState[`p${pid}`].dinoZones[zoneIdx];
@@ -626,7 +618,8 @@ async function attemptEvolution(pid, zoneIdx) {
       available.forEach(name => {
         const card = ALL_CARDS.find(c=>c.name===name);
         const div = document.createElement("div"); div.className = "search-card";
-        const img = document.createElement("img"); img.src = getImagePath(card.name);
+        const img = document.createElement("img");
+        setImageWithFallback(img, card.name);
         div.appendChild(img);
         div.onclick = () => { resolve(card.name); modal.style.display="none"; };
         cont.appendChild(div);
@@ -738,7 +731,7 @@ function endTurn() {
     battleState.starterMovedThisTurn = false;
     battleState.phase = 'main';
     renderBattleUI();
-    addLog("AI's turn. (AI will play automatically)");
+    addLog("AI's turn.");
     setTimeout(() => aiTurn(), 800);
   } else {
     battleState.turn = 1;
@@ -761,7 +754,6 @@ async function aiTurn() {
     addLog("AI draws a card.");
     renderBattleUI();
   }
-  // AI plays first Stage 1
   let handDino = battleState.p2.hand.find(c=>c.category==='dino' && c.stage===1);
   if(handDino) {
     let empty = battleState.p2.dinoZones.findIndex(z=>!z);
@@ -773,7 +765,6 @@ async function aiTurn() {
       renderBattleUI();
     }
   }
-  // AI evolution
   if(!battleState.evolutionUsedThisTurn) {
     for(let i=0;i<4;i++) {
       let d = battleState.p2.dinoZones[i];
@@ -835,8 +826,8 @@ function showGY(pid) {
   container.innerHTML = "";
   p.graveyard.forEach(card => {
     let div = document.createElement("div"); div.className = "search-card";
-    let img = document.createElement("img"); img.src = getImagePath(card.name);
-    img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 213'%3E%3Crect width='160' height='213' fill='%23c09a6b'/%3E%3Ctext x='80' y='110' text-anchor='middle' fill='black' font-size='30'%3E💀%3C/text%3E%3C/svg%3E"; };
+    let img = document.createElement("img");
+    setImageWithFallback(img, card.name);
     div.appendChild(img);
     div.onclick = () => alert(card.effect || "No effect");
     container.appendChild(div);
@@ -852,14 +843,13 @@ function renderBattleUI() {
   html += `<div class="phase-bar"><div class="phase-btn active" id="phaseButton">⚔️ ${battleState.phase.toUpperCase()} PHASE (click to advance)</div><button id="endTurnBattleBtn">⏩ END TURN</button></div><div class="log" id="gameLog"></div>`;
   container.innerHTML = html;
   updateLogUI();
-
   for(let pid of [1,2]) {
     let pData = battleState[`p${pid}`];
     let topRow = document.getElementById(`battleP${pid}TopRow`);
     let bottomRow = document.getElementById(`battleP${pid}BottomRow`);
     if(!topRow) continue;
     let starterImg = getImagePath(pData.starterZone?.name || 'placeholder');
-    topRow.innerHTML = `<div class="zone-card starter-zone" onclick="moveStarterToField(${pid})"><img class="card-image" src="${starterImg}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E⭐%3C/text%3E%3C/svg%3E'" onclick="event.stopPropagation(); alert(pData.starterZone?.effect||'No effect')"><div class="card-stats"><span>❤️${pData.starterZone?.hp||0}</span></div></div>`;
+    topRow.innerHTML = `<div class="zone-card starter-zone" onclick="moveStarterToField(${pid})"><img class="card-image" src="${starterImg}" onerror="this.src='${createPlaceholderImg(pData.starterZone?.name || 'Starter')}'" onclick="event.stopPropagation(); alert(pData.starterZone?.effect||'No effect')"><div class="card-stats"><span>❤️${pData.starterZone?.hp||0}</span></div></div>`;
     for(let i=0;i<4;i++) {
       let d = pData.dinoZones[i];
       let curHp = d ? d.hp - (d.damage||0) : 0;
@@ -877,7 +867,7 @@ function renderBattleUI() {
       }
       let ailClass = d?.ailments ? (d.ailments.includes('poison')?"poisoned": d.ailments.includes('bleed')?"bleeding": d.ailments.includes('paralyzed')?"paralyzed": d.ailments.includes('submerged')?"submerged":"") : "";
       topRow.innerHTML += `<div class="zone-card dino-zone ${ailClass}" id="dinoZone_${pid}_${i}" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,${pid},'dino',${i})">
-        ${d ? `<div><img class="card-image" id="dinoImg_${pid}_${i}" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E${d.name}%3C/text%3E%3C/svg%3E'" onclick="alert(d.effect||'No effect')">${energyDisplay}<div class="card-stats"><span>❤️${curHp}/${d.hp}</span></div><div class="action-buttons">${buttons}</div></div>` : `<div class="card-image" style="background:#5e3a2e; display:flex; align-items:center; justify-content:center;">Empty</div>`}
+        ${d ? `<div><img class="card-image" id="dinoImg_${pid}_${i}" src="${imgSrc}" onerror="this.src='${createPlaceholderImg(d.name)}'" onclick="alert(d.effect||'No effect')">${energyDisplay}<div class="card-stats"><span>❤️${curHp}/${d.hp}</span></div><div class="action-buttons">${buttons}</div></div>` : `<div class="card-image" style="background:#5e3a2e; display:flex; align-items:center; justify-content:center;">Empty</div>`}
       </div>`;
     }
     bottomRow.innerHTML = `<div class="zone-card energy-zone"><div class="card-image" style="background:#c9510c; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">⚡ ENERGY</div><div class="card-stats">Drag energy to dino/research</div></div>`;
@@ -885,28 +875,26 @@ function renderBattleUI() {
       let r = pData.researchZones[i];
       let imgSrc = r ? getImagePath(r.name) : '';
       bottomRow.innerHTML += `<div class="zone-card research-zone" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,${pid},'research',${i})">
-        ${r ? `<img class="card-image" src="${imgSrc}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23c09a6b'/%3E%3Ctext x='150' y='200' text-anchor='middle' fill='black' font-size='24'%3E${r.name}%3C/text%3E%3C/svg%3E'" onclick="alert(r.effect)"><div class="card-stats">${r.name}</div>` : `<div class="card-image" style="background:#2a4b55; display:flex; align-items:center; justify-content:center;">Empty</div>`}
+        ${r ? `<img class="card-image" src="${imgSrc}" onerror="this.src='${createPlaceholderImg(r.name)}'" onclick="alert(r.effect)"><div class="card-stats">${r.name}</div>` : `<div class="card-image" style="background:#2a4b55; display:flex; align-items:center; justify-content:center;">Empty</div>`}
       </div>`;
     }
-    // Energy pile
     let pileDiv = document.getElementById(`energyPile${pid}`);
     pileDiv.innerHTML = "";
     pData.energyPile.forEach((eng, idx) => {
       let ediv = document.createElement("div"); ediv.className = "energy-pile-card";
       ediv.setAttribute("draggable","true");
       ediv.ondragstart = (e) => onEnergyDragStart(e, pid, idx);
-      let img = document.createElement("img"); img.src = getImagePath(eng.name);
-      img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160'%3E%3Crect width='120' height='160' fill='%23c09a6b'/%3E%3Ctext x='60' y='90' text-anchor='middle' fill='black' font-size='30'%3E⚡%3C/text%3E%3C/svg%3E"; };
+      let img = document.createElement("img");
+      setImageWithFallback(img, eng.name);
       ediv.appendChild(img);
       pileDiv.appendChild(ediv);
     });
-    // Hand
     let handDiv = document.getElementById(`battleP${pid}Hand`);
     handDiv.innerHTML = "";
     pData.hand.forEach((card, idx) => {
       let cdiv = document.createElement("div"); cdiv.className = "hand-card";
-      let img = document.createElement("img"); img.src = getImagePath(card.name);
-      img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160'%3E%3Crect width='120' height='160' fill='%23c09a6b'/%3E%3Ctext x='60' y='90' text-anchor='middle' fill='black' font-size='30'%3E🃏%3C/text%3E%3C/svg%3E"; };
+      let img = document.createElement("img");
+      setImageWithFallback(img, card.name);
       cdiv.appendChild(img);
       cdiv.onclick = () => playCardFromHand(pid, idx);
       handDiv.appendChild(cdiv);
