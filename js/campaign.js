@@ -34,9 +34,12 @@ function saveCampaignProgress() {
 }
 
 function updateFossilUI() {
-  document.getElementById("lowFossils").innerText = campaignProgress.lowFossils;
-  document.getElementById("mediumFossils").innerText = campaignProgress.mediumFossils;
-  document.getElementById("highFossils").innerText = campaignProgress.highFossils;
+  const lowSpan = document.getElementById("lowFossils");
+  const mediumSpan = document.getElementById("mediumFossils");
+  const highSpan = document.getElementById("highFossils");
+  if(lowSpan) lowSpan.innerText = campaignProgress.lowFossils;
+  if(mediumSpan) mediumSpan.innerText = campaignProgress.mediumFossils;
+  if(highSpan) highSpan.innerText = campaignProgress.highFossils;
 }
 
 const levels = [
@@ -73,6 +76,7 @@ function renderLevelList() {
 }
 
 function buildOpponentDeck(levelId) {
+  // For now, a simple random deck of 15 cards
   const opponentCards = [];
   for(let i=0; i<15; i++) {
     const randomCard = ALL_CARDS[Math.floor(Math.random() * ALL_CARDS.length)];
@@ -93,12 +97,18 @@ function startLevel(levelId) {
   currentLevel = levels[levelId-1];
   const opponentDeck = buildOpponentDeck(levelId);
   
-  document.querySelector(".level-selector").style.display = "none";
-  document.querySelector(".crafting-section").style.display = "none";
-  document.getElementById("campaignBattleContainer").style.display = "block";
+  // Hide level selector and crafting section, show battle container
+  const levelSelector = document.querySelector(".level-selector");
+  const craftingSection = document.querySelector(".crafting-section");
+  const battleContainer = document.getElementById("campaignBattleContainer");
+  if(levelSelector) levelSelector.style.display = "none";
+  if(craftingSection) craftingSection.style.display = "none";
+  if(battleContainer) battleContainer.style.display = "block";
   
+  // Start the battle
   startBattle(campaignDeck, opponentDeck);
   
+  // Monitor battle outcome
   if(battleInterval) clearInterval(battleInterval);
   battleInterval = setInterval(() => {
     if(window.battleState) {
@@ -165,7 +175,9 @@ function renderCraftableCards() {
         saveCampaignProgress();
         updateFossilUI();
         renderCraftableCards();
-        renderCampaignDeckEditor();
+        if(document.getElementById("campaignDeckModal").style.display === "flex") {
+          renderCampaignDeckEditor();
+        }
         alert(`Crafted ${cardName}! It's now available in your campaign deck.`);
       } else {
         alert("Not enough fossils!");
@@ -218,7 +230,8 @@ function renderCampaignDeckEditor() {
     slot.append(img, nameSpan, delBtn);
     deckContainer.appendChild(slot);
   });
-  document.getElementById("campaignDeckSize").innerText = campaignDeck.length;
+  const deckSizeSpan = document.getElementById("campaignDeckSize");
+  if(deckSizeSpan) deckSizeSpan.innerText = campaignDeck.length;
 }
 
 function saveCampaignDeck() {
@@ -240,13 +253,12 @@ export function showCampaignMenu() {
   if(battleInterval) clearInterval(battleInterval);
   const levelSelector = document.querySelector(".level-selector");
   const craftingSection = document.querySelector(".crafting-section");
+  const battleContainer = document.getElementById("campaignBattleContainer");
   if(levelSelector) levelSelector.style.display = "block";
   if(craftingSection) craftingSection.style.display = "block";
-  const campaignBattleContainer = document.getElementById("campaignBattleContainer");
-  if(campaignBattleContainer) campaignBattleContainer.style.display = "none";
+  if(battleContainer) battleContainer.style.display = "none";
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  const campaignPage = document.getElementById("campaignPage");
-  if(campaignPage) campaignPage.classList.add("active");
+  document.getElementById("campaignPage").classList.add("active");
   loadCampaignProgress();
 }
 
@@ -257,8 +269,8 @@ export function initCampaign() {
     document.getElementById("campaignPage").classList.remove("active");
     window.showMainMenu();
   };
-  const openEditorBtn = document.getElementById("openCampaignDeckEditorBtn");
-  if(openEditorBtn) openEditorBtn.onclick = openCampaignDeckModal;
-  const saveDeckBtn = document.getElementById("saveCampaignDeckBtn");
-  if(saveDeckBtn) saveDeckBtn.onclick = saveCampaignDeck;
+  const openBtn = document.getElementById("openCampaignDeckEditorBtn");
+  if(openBtn) openBtn.onclick = openCampaignDeckModal;
+  const saveBtn = document.getElementById("saveCampaignDeckBtn");
+  if(saveBtn) saveBtn.onclick = saveCampaignDeck;
 }
