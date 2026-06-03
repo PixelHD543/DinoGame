@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dino Duel - Single Player</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="player-board opponent-board">
+            <h3>🤖 AI OPPONENT</h3>
+            <div class="field-grid">
+                <div class="grid-row mirror-row" id="opponentTopRow"></div>
+                <div class="grid-row mirror-row" id="opponentBottomRow"></div>
+            </div>
+            <div class="hand-area"><div class="hand-container" id="opponentHand"></div></div>
+            <div class="deck-grave-stack">
+                <div class="stack-item" id="opponentDeckCount">📖 DECK 0</div>
+            </div>
+            <div class="energy-pile" id="opponentEnergyPile"></div>
+        </div>
+        
+        <div class="field-zone">🌍 FIELD ZONE</div>
+        
+        <div class="player-board">
+            <h3>🔥 YOU</h3>
+            <div class="field-grid">
+                <div class="grid-row" id="playerTopRow"></div>
+                <div class="grid-row" id="playerBottomRow"></div>
+            </div>
+            <div class="hand-area"><div class="hand-container" id="playerHand"></div></div>
+            <div class="deck-grave-stack">
+                <div class="stack-item" id="playerDeckCount">📖 DECK 0</div>
+            </div>
+            <div class="energy-pile" id="playerEnergyPile"></div>
+        </div>
+        
+        <div class="phase-bar">
+            <div class="phase-btn active" id="phaseButton">⚔️ MAIN PHASE (click to advance)</div>
+            <button id="endTurnBtn">⏩ END TURN</button>
+            <button id="backBtn">🏠 Main Menu</button>
+        </div>
+        <div class="log" id="gameLog"></div>
+    </div>
+
+    <script type="module">
+        import { startSinglePlayer, getState, playerDraw, playerPlayDino, playerPlayResearch, playerPlayMove, playerAttachEnergy, playerEvolve, playerAttack, playerSwapStarter, playerMoveStarter, playerNextPhase } from './js/singleplayer.js';
+        import { getImagePath } from './js/utils.js';
+        import { ALL_CARDS } from './js/cardData.js';
+        
+        // Get deck from localStorage or create default
+        function getDeck() {
+            const saved = localStorage.getItem("dinoDecks");
+            const decks = saved ? JSON.parse(saved) : { p1_deck1: [] };
+            return decks.p1_deck1.length ? decks.p1_deck1 : ALL_CARDS.slice(0, 15).map(c => ({ id: c.id, category: c.category }));
+        }
+        
+        // Render UI
+        function renderBattleUI() {
+            const state = getState();
+            if(!state) return;
+            
+            // Update deck counts
+            document.getElementById('playerDeckCount').innerHTML = `📖 DECK ${state.p1.deck.length}`;
+            document.getElementById('opponentDeckCount').innerHTML = `📖 DECK ${state.p2.deck.length}`;
+            
+            // Player hand
+            const playerHand = document.getElementById('playerHand');
+            playerHand.innerHTML = '';
+            state.p1.hand.forEach((card, idx) => {
+                const div = document.createElement('div'); div.className = 'hand-card';
+                const img = document.createElement('img');
+                img.src = getImagePath(card.name);
+                img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160'%3E%3Crect width='120' height='160' fill='%23c09a6b'/%3E%3Ctext x='60' y='90' text-anchor='middle' fill='black'%3E" + card.name + "%3C/text%3E%3C/svg%3E"; };
+                div.appendChild(img);
+                div.onclick = () => {
+                    if(card.category === 'dino') playerPlayDino(idx);
+                    else if(card.category === 'research') playerPlayResearch(idx);
+                    else if(card.category === 'move') {
+                        let target = prompt("Target opponent dino zone (0-3):");
+                        playerPlayMove(idx, parseInt(target));
+                    }
+                };
+                playerHand.appendChild(div);
+            });
+            
+            // Opponent hand (face down)
+            const oppHand = document.getElementById('opponentHand');
+            oppHand.innerHTML = '';
+            for(let i=0; i<state.p2.hand.length; i++) {
+                const div = document.createElement('div'); div.className = 'hand-card';
+                const img = document.createElement('img');
+                img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160'%3E%3Crect width='120' height='160' fill='%23352a1a'/%3E%3Ctext x='60' y='90' text-anchor='middle' fill='%23dba14b' font-size='30'%3E?%3C/text%3E%3C/svg%3E";
+                div.appendChild(img);
+                oppHand.appendChild(div);
+            }
+            
+            // Player dino zones
+            const playerTopRow = document.getElementById('playerTopRow');
+            playerTopRow.innerHTML = '';
+            playerTopRow.innerHTML += `<div class="zone-card starter-zone" onclick="playerMoveStarter()"><img class="card-image" src="${getImagePath(state.p1.starterZone?.name || 'placeholder')}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 160%22%3E%3Crect width=%22120%22 height=%22160%22 fill=%22%23c09a6b%22/%3E%3Ctext x=%2260%22 y=%2290%22 text-anchor=%22middle%22 fill=%22black%22%3E⭐%3C/text%3E%3C/svg%3E'"><div class="card-stats"><span>❤️${state.p1.starterZone?.hp||0}</span></div></div>`;
+            for(let i=0;i<4;i++) {
+                let d = state.p1.dinoZones[i];
+                let curHp = d ? d.hp - (d.damage||0) : 0;
+                let energyCount = d?.energyAttached?.length || 0;
+                let energyDisplay = energyCount > 0 ? `<div class="energy-stack"><div class="energy-card"></div><div class="energy-count">x${energyCount}</div></div>` : '';
+                playerTopRow.innerHTML += `<div class="zone-card dino-zone" id="playerDino_${i}">
+                    ${d ? `<div><img class="card-image" src="${getImagePath(d.name)}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 160%22%3E%3Crect width=%22120%22 height=%22160%22 fill=%22%23c09a6b%22/%3E%3Ctext x=%2260%22 y=%2290%22 text-anchor=%22middle%22 fill=%22black%22%3E${d.name}%3C/text%3E%3C/svg%3E'">${energyDisplay}<div class="card-stats"><span>❤️${curHp}/${d.hp}</span></div>
+                    <div class="action-buttons"><button class="action-btn evolve" onclick="playerEvolve(${i}, null)">🔄 EVOLVE</button><button class="action-btn attack" onclick="attackWith(${i})">⚔️ ATTACK</button><button class="action-btn" onclick="playerSwapStarter(${i})">🔄 SWAP</button></div></div>` : `<div class="card-image" style="background:#5e3a2e;">Empty</div>`}
+                </div>`;
+            }
+            
+            // Opponent dino zones
+            const oppTopRow = document.getElementById('opponentTopRow');
+            oppTopRow.innerHTML = '';
+            oppTopRow.innerHTML += `<div class="zone-card starter-zone"><img class="card-image" src="${getImagePath(state.p2.starterZone?.name || 'placeholder')}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 160%22%3E%3Crect width=%22120%22 height=%22160%22 fill=%22%23c09a6b%22/%3E%3Ctext x=%2260%22 y=%2290%22 text-anchor=%22middle%22 fill=%22black%22%3E⭐%3C/text%3E%3C/svg%3E'"><div class="card-stats"><span>❤️${state.p2.starterZone?.hp||0}</span></div></div>`;
+            for(let i=0;i<4;i++) {
+                let d = state.p2.dinoZones[i];
+                let curHp = d ? d.hp - (d.damage||0) : 0;
+                oppTopRow.innerHTML += `<div class="zone-card dino-zone" id="opponentDino_${i}">
+                    ${d ? `<div><img class="card-image" src="${getImagePath(d.name)}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 160%22%3E%3Crect width=%22120%22 height=%22160%22 fill=%22%23c09a6b%22/%3E%3Ctext x=%2260%22 y=%2290%22 text-anchor=%22middle%22 fill=%22black%22%3E${d.name}%3C/text%3E%3C/svg%3E'"><div class="card-stats"><span>❤️${curHp}/${d.hp}</span></div></div>` : `<div class="card-image" style="background:#5e3a2e;">Empty</div>`}
+                </div>`;
+            }
+            
+            // Energy piles
+            const playerEnergy = document.getElementById('playerEnergyPile');
+            playerEnergy.innerHTML = '';
+            state.p1.energyPile.forEach((eng, idx) => {
+                const ediv = document.createElement('div'); ediv.className = 'energy-pile-card';
+                ediv.setAttribute('draggable','true');
+                ediv.ondragstart = (e) => e.dataTransfer.setData('text/plain', JSON.stringify({idx}));
+                ediv.ondragend = () => {};
+                const img = document.createElement('img');
+                img.src = getImagePath(eng.name);
+                img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 100'%3E%3Crect width='80' height='100' fill='%23c09a6b'/%3E%3Ctext x='40' y='60' text-anchor='middle' fill='black'%3E⚡%3C/text%3E%3C/svg%3E"; };
+                ediv.appendChild(img);
+                playerEnergy.appendChild(ediv);
+            });
+            
+            const oppEnergy = document.getElementById('opponentEnergyPile');
+            oppEnergy.innerHTML = '';
+            state.p2.energyPile.forEach(() => {
+                const ediv = document.createElement('div'); ediv.className = 'energy-pile-card';
+                const img = document.createElement('img');
+                img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 100'%3E%3Crect width='80' height='100' fill='%23352a1a'/%3E%3Ctext x='40' y='60' text-anchor='middle' fill='%23dba14b'%3E?%3C/text%3E%3C/svg%3E";
+                ediv.appendChild(img);
+                oppEnergy.appendChild(ediv);
+            });
+            
+            // Drop zone for energy
+            for(let i=0;i<4;i++) {
+                const zone = document.getElementById(`playerDino_${i}`);
+                zone.ondragover = (e) => e.preventDefault();
+                zone.ondrop = (e) => {
+                    e.preventDefault();
+                    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                    playerAttachEnergy(i, data.idx);
+                };
+            }
+            
+            document.getElementById('phaseButton').innerText = `⚔️ ${state.phase.toUpperCase()} PHASE (click to advance)`;
+        }
+        
+        window.attackWith = (zone) => {
+            let target = prompt("Attack opponent dino zone (0-3):");
+            let discard = prompt("Discard energies (0-?):");
+            playerAttack(zone, parseInt(target), parseInt(discard), false);
+        };
+        window.playerEvolve = (zone, name) => playerEvolve(zone, name);
+        window.playerSwapStarter = (zone) => playerSwapStarter(zone);
+        window.playerMoveStarter = () => playerMoveStarter();
+        window.playerAttachEnergy = (zone, idx) => playerAttachEnergy(zone, idx);
+        
+        function updateLogUI(logArray) {
+            const logDiv = document.getElementById('gameLog');
+            logDiv.innerHTML = logArray.map(l => `<div>🦖 ${l}</div>`).join('');
+        }
+        
+        // Initialize
+        const deck = getDeck();
+        startSinglePlayer(deck);
+        renderBattleUI();
+        
+        document.getElementById('phaseButton').onclick = () => playerNextPhase();
+        document.getElementById('endTurnBtn').onclick = () => playerNextPhase();
+        document.getElementById('backBtn').onclick = () => window.location.href = 'index.html';
+        
+        window.playerPlayDino = playerPlayDino;
+    </script>
+</body>
+</html>
