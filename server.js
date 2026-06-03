@@ -5,9 +5,19 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 
-// Serve static files (your existing game)
+// Healthcheck endpoint for Railway
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
+// Serve static files (optional – for any future static assets)
 app.use(express.static(path.join(__dirname, '/')));
 
 // Store active game rooms
@@ -33,7 +43,6 @@ io.on('connection', (socket) => {
     callback({ success: true, playerIndex });
 
     if (game.players.length === 2) {
-      // Initialise game state (send starting hands, etc.)
       io.to(roomId).emit('gameStart', { message: 'Both players ready!' });
     }
   });
