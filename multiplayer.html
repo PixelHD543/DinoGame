@@ -253,6 +253,7 @@
 
         // Connect to server (Railway URL – CHANGE THIS TO YOUR RAILWAY URL)
         const SERVER_URL = 'dinogame-production.up.railway.app'; // Replace with your actual Railway URL
+        let socket = null;
         
         joinBtn.onclick = () => {
             roomId = roomInput.value.trim();
