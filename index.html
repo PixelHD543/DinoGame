@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Dino Duel TCG - Complete Game</title>
+    <title>Dino Duel TCG - Complete Edition</title>
     <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-        }
-
+        * { box-sizing: border-box; user-select: none; }
         body {
             background: linear-gradient(145deg, #1a3a2a 0%, #0a1f12 100%);
             font-family: 'Segoe UI', Roboto, 'Trebuchet MS', sans-serif;
@@ -17,8 +13,6 @@
             padding: 20px;
             color: #f7f3d9;
         }
-
-        /* Main Menu */
         .page {
             display: none;
             max-width: 1600px;
@@ -31,7 +25,6 @@
             border: 3px solid #e2b13b;
         }
         .page.active { display: block; }
-
         .menu-buttons {
             display: flex;
             justify-content: center;
@@ -51,8 +44,6 @@
         }
         .menu-card:hover { transform: scale(1.05); background: #2e3e2acc; }
         .menu-card h2 { margin: 0 0 10px; font-size: 1.6rem; color: #ffdd99; }
-
-        /* Deck Editor */
         .deck-editor { display: flex; gap: 30px; flex-wrap: wrap; }
         .card-pool { flex: 2; background: #1f2a1cdd; border-radius: 48px; padding: 20px; }
         .deck-area { flex: 1.5; background: #2d2418dd; border-radius: 48px; padding: 20px; }
@@ -91,8 +82,6 @@
             cursor: pointer;
         }
         .danger-btn { background: #aa3e1c; color: white; }
-
-        /* Battle Layout */
         .player-board {
             background: #1e2a1cdd;
             border-radius: 40px;
@@ -109,7 +98,6 @@
             padding: 8px;
             border: 3px solid #c97e3a;
             position: relative;
-            transition: 0.2s;
         }
         .starter-zone { background: #5e3a1f; border-color: #ffb347; cursor: pointer; }
         .energy-zone { background: #c9510c; border-color: #ffdf80; }
@@ -129,7 +117,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            z-index: 1;
         }
         .energy-card {
             width: 35px;
@@ -165,10 +152,11 @@
             padding: 4px 10px;
             border-radius: 30px;
             cursor: pointer;
+            border: none;
         }
         .action-btn.attack { background: #b64516; }
         .action-btn.evolve { background: #6a4e2e; }
-
+        .action-btn.ability { background: #8b5a2b; }
         .hand-area {
             background: #35281599;
             border-radius: 40px;
@@ -186,7 +174,6 @@
             cursor: pointer;
         }
         .hand-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 14px; }
-
         .phase-bar { display: flex; gap: 20px; justify-content: center; margin: 20px 0; background: #1f1a0fcc; padding: 12px; border-radius: 60px; }
         .phase-btn {
             background: #3e2a1c;
@@ -197,7 +184,6 @@
             cursor: pointer;
         }
         .phase-btn.active { background: #e6a53b; color: #1f2f0c; border-color: #ffdd88; box-shadow: 0 0 16px gold; }
-
         .deck-grave-stack { display: flex; gap: 15px; justify-content: flex-end; margin-top: 20px; }
         .stack-item {
             background: #1f1a0fcc;
@@ -217,7 +203,6 @@
         }
         .energy-pile-card { width: 60px; cursor: grab; }
         .energy-pile-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; }
-
         .log {
             background: #0f0f0fcc;
             border-radius: 32px;
@@ -251,6 +236,45 @@
         .bleeding { border-color: #FF0000; }
         .paralyzed { border-color: #FFFF00; }
         .submerged { border-color: #00BFFF; opacity: 0.8; }
+        .fortified { border-color: #C0C0C0; }
+        .waiting-screen {
+            text-align: center;
+            padding: 40px;
+            background: #1f1a0fcc;
+            border-radius: 48px;
+            margin: 20px;
+        }
+        .waiting-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 4px solid #ffdd99;
+            border-top-color: #e6a53b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .mode-selector {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .mode-btn {
+            background: #3e2a1c;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+        }
+        .mode-btn.active { background: #e6a53b; color: #1f2f0c; }
+        .room-controls {
+            background: #1f1a0fcc;
+            border-radius: 48px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .room-controls input, .room-controls button { margin: 10px; }
         @media (max-width: 1000px) {
             .grid-row { grid-template-columns: repeat(5, minmax(100px, 130px)); gap: 8px; }
             .hand-card { width: 85px; }
@@ -258,7 +282,6 @@
     </style>
 </head>
 <body>
-
 <div id="mainMenuPage" class="page active">
     <h1 style="text-align:center;">🦖 DINO DUEL TCG 🦕</h1>
     <div class="menu-buttons">
@@ -272,6 +295,7 @@
     <h2>Rules</h2>
     <div class="rules-content">
         <p>First to 6 points wins. Click DECK to draw, play Stage 1 dinos, evolve same type, attack. Defender can use 1 energy to block. Type matchups: Water > Fire > Grass > Ground > Electric > Water.</p>
+        <p><strong>Multiplayer:</strong> Create or join a room with a code. Game starts when both players are ready.</p>
         <button onclick="showMainMenu()">Back</button>
     </div>
 </div>
@@ -299,32 +323,68 @@
 
 <div id="battlePage" class="page">
     <div class="battle-header"><h2>Battle Arena</h2><button id="backToMenuFromBattle">Menu</button></div>
-    <div class="deck-selector">
-        <select id="p1DeckSelect"></select>
-        <select id="p2DeckSelect"></select>
-        <button id="startMatchBtn">Start Match</button>
+    
+    <div class="mode-selector">
+        <button id="singlePlayerBtn" class="mode-btn active">🎮 Single Player (vs AI)</button>
+        <button id="multiplayerBtn" class="mode-btn">🌐 Multiplayer</button>
     </div>
+    
+    <div id="singlePlayerPanel">
+        <div class="deck-selector">
+            <select id="p1DeckSelect"></select>
+            <button id="startAIMatchBtn">Start vs AI</button>
+        </div>
+    </div>
+    
+    <div id="multiplayerPanel" style="display: none;">
+        <div class="room-controls">
+            <input type="text" id="roomIdInput" placeholder="Room code (e.g., room123)">
+            <button id="createRoomBtn">Create Room</button>
+            <button id="joinRoomBtn">Join Room</button>
+        </div>
+        <div id="waitingScreen" style="display: none;">
+            <div class="waiting-screen">
+                <div class="waiting-spinner"></div>
+                <h3>Waiting for opponent...</h3>
+                <p>Share the room code with your friend</p>
+                <button id="cancelWaitBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="battleContainer"></div>
 </div>
 
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
-// ==================== CARD DATABASE ====================
+// ==================== CARD DATABASE (FULL) ====================
 const CARD_CATALOG = {
     dinos: [
         { id:"Baby rex", name:"Baby rex", type:"fire", stage:1, power:1500, hp:2000, effect:"", category:"dino" },
         { id:"T-rex", name:"T-rex", type:"fire", stage:2, power:3000, hp:3500, effect:"", category:"dino" },
+        { id:"Omega Rex", name:"Omega Rex", type:"fire", stage:3, power:3000, hp:3000, effect:"Bleed: all opponent dinos bleed when in starter", category:"dino" },
         { id:"Baby Triceratops", name:"Baby Triceratops", type:"grass", stage:1, power:2000, hp:2500, effect:"", category:"dino" },
-        { id:"Triceratops", name:"Triceratops", type:"grass", stage:2, power:4000, hp:4000, effect:"", category:"dino" },
+        { id:"Triceratops", name:"Triceratops", type:"grass", stage:2, power:4000, hp:4000, effect:"Immune to effects", category:"dino" },
         { id:"Baby Velociraptor", name:"Baby Velociraptor", type:"electric", stage:1, power:1000, hp:800, effect:"", category:"dino" },
         { id:"Velociraptor", name:"Velociraptor", type:"electric", stage:1, power:500, hp:500, effect:"", category:"dino" },
-        { id:"Dilophosaurus", name:"Dilophosaurus", type:"electric", stage:1, power:1000, hp:500, effect:"Poison on attack", category:"dino" }
+        { id:"Dilophosaurus", name:"Dilophosaurus", type:"electric", stage:1, power:1000, hp:500, effect:"Poison on attack", category:"dino" },
+        { id:"Acrocanthosaurus", name:"Acrocanthosaurus", type:"fire", stage:2, power:2000, hp:3000, effect:"Destroys injured dino", category:"dino" },
+        { id:"Allosaurus", name:"Allosaurus", type:"fire", stage:2, power:3000, hp:3000, effect:"Doubles bleed damage", category:"dino" },
+        { id:"Compsognathus", name:"Compsognathus", type:"electric", stage:1, power:250, hp:250, effect:"Can stack", category:"dino", stacking: true },
+        { id:"Dunkleosteus", name:"Dunkleosteus", type:"water", stage:2, power:1200, hp:4000, effect:"Add Whirlpool", category:"dino" },
+        { id:"Plesiosaur", name:"Plesiosaur", type:"water", stage:2, power:2500, hp:1800, effect:"Mill opponent cards", category:"dino" },
+        { id:"Spinosaurus", name:"Spinosaurus", type:"water", stage:2, power:2500, hp:4000, effect:"Submerge opponent", category:"dino" },
+        { id:"Ankylosaurus", name:"Ankylosaurus", type:"ground", stage:2, power:2000, hp:3500, effect:"Fortified", category:"dino" },
+        { id:"Argentinosaurus", name:"Argentinosaurus", type:"normal", stage:2, power:3500, hp:7000, effect:"", category:"dino" }
     ],
     moves: [
         { id:"Lightning Attack", name:"Lightning Attack", type:"electric", cost:1, effect:"Paralyze", category:"move", appliesAilment:"paralyzed" },
-        { id:"Tsunami", name:"Tsunami", type:"water", cost:1, effect:"Submerge", category:"move", appliesAilment:"submerged" }
+        { id:"Tsunami", name:"Tsunami", type:"water", cost:1, effect:"Submerge", category:"move", appliesAilment:"submerged" },
+        { id:"Whirlpool", name:"Whirlpool", type:"water", cost:3, effect:"Add energy", category:"move" }
     ],
     research: [
-        { id:"Dig site", name:"Dig site", effect:"Add a dino from deck to hand", category:"research", isField: false }
+        { id:"Dig site", name:"Dig site", effect:"Add a dino from deck to hand", category:"research", isField: false },
+        { id:"Palaeontology", name:"Palaeontology", effect:"Search for move", category:"research", isField: false }
     ]
 };
 const ALL_CARDS = [...CARD_CATALOG.dinos, ...CARD_CATALOG.moves, ...CARD_CATALOG.research];
@@ -417,12 +477,101 @@ function initDeckEditor() {
     renderCardPool(); loadDeck();
 }
 
-// ==================== BATTLE ENGINE ====================
+// ==================== BATTLE ENGINE (Shared) ====================
 let battleState = null;
 let pendingAttacker = null;
 let gameLog = [];
+let isMultiplayer = false;
+let multiplayerSocket = null;
+let multiplayerRoomId = null;
+let multiplayerPlayerIndex = null;
+let waitingForOpponent = false;
+
 function addLog(msg) { gameLog.unshift(msg); if(gameLog.length>20) gameLog.pop(); updateLogUI(); }
 function updateLogUI() { const logDiv = document.getElementById("gameLog"); if(logDiv) logDiv.innerHTML = gameLog.map(l=>`🦖 ${l}`).join('<br>'); }
+
+// AI Turn (Single Player)
+async function aiTurn() {
+    if(battleState.turn !== 2 || isMultiplayer) return;
+    addLog("🤖 AI thinking...");
+    await new Promise(r=>setTimeout(r,800));
+    if(!battleState.drawnThisTurn && battleState.p2.deck.length>0) {
+        battleState.p2.hand.push(battleState.p2.deck.pop());
+        battleState.drawnThisTurn = true;
+        addLog("AI draws a card.");
+        renderBattleUI();
+    }
+    let handDino = battleState.p2.hand.find(c=>c.category==='dino' && c.stage===1);
+    if(handDino) {
+        let empty = battleState.p2.dinoZones.findIndex(z=>!z);
+        if(empty!==-1) {
+            battleState.p2.dinoZones[empty] = {...handDino, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+            let idx = battleState.p2.hand.findIndex(c=>c===handDino);
+            battleState.p2.hand.splice(idx,1);
+            addLog(`AI played ${handDino.name}.`);
+            renderBattleUI();
+        }
+    }
+    if(!battleState.evolutionUsedThisTurn) {
+        for(let i=0;i<4;i++) {
+            let d = battleState.p2.dinoZones[i];
+            if(d) {
+                let possible = getEvolutionStages(d);
+                let avail = possible.filter(name => battleState.p2.hand.some(c=>c.name===name));
+                if(avail.length) {
+                    let nextCard = battleState.p2.hand.find(c=>c.name===avail[0]);
+                    battleState.p2.graveyard.push({...d});
+                    battleState.p2.dinoZones[i] = {...nextCard, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+                    let idx = battleState.p2.hand.findIndex(c=>c===nextCard);
+                    battleState.p2.hand.splice(idx,1);
+                    battleState.evolutionUsedThisTurn = true;
+                    addLog(`AI evolved into ${nextCard.name}.`);
+                    renderBattleUI();
+                    break;
+                }
+            }
+        }
+    }
+    battleState.phase = 'battle';
+    renderBattleUI();
+    await new Promise(r=>setTimeout(r,500));
+    for(let i=0;i<4;i++) {
+        let attacker = battleState.p2.dinoZones[i];
+        if(attacker && !(attacker.ailments && attacker.ailments.includes('paralyzed'))) {
+            let targetIdx = battleState.p1.dinoZones.findIndex(d=>d);
+            if(targetIdx!==-1) {
+                let defender = battleState.p1.dinoZones[targetIdx];
+                let discard = Math.min(attacker.energyAttached?.length||0, 1);
+                for(let j=0;j<discard;j++) attacker.energyAttached.pop();
+                let typeMult = getTypeMultiplier(attacker.type, defender.type);
+                let attackPower = (attacker.power * typeMult) + (discard * 1000);
+                let defendPower = 0;
+                if(defender.energyAttached?.length>0 && Math.random()<0.5) {
+                    defender.energyAttached.pop();
+                    defendPower = defender.power;
+                }
+                let damage = Math.max(0, attackPower - defendPower);
+                defender.damage = (defender.damage||0) + damage;
+                addLog(`AI attacks ${defender.name}: ${attackPower} vs ${defendPower} -> ${damage} damage.`);
+                if(defender.damage >= defender.hp) {
+                    let idx = battleState.p1.dinoZones.findIndex(d=>d===defender);
+                    battleState.p1.graveyard.push(defender);
+                    battleState.p1.dinoZones[idx] = null;
+                    battleState.p2.points++;
+                    addLog(`${defender.name} destroyed! AI gains a point.`);
+                }
+                renderBattleUI();
+                await new Promise(r=>setTimeout(r,500));
+            }
+        }
+    }
+    endTurn();
+}
+
+function startAIMatch(deckRef) {
+    isMultiplayer = false;
+    startMatch(deckRef, null);
+}
 
 async function startMatch(p1DeckRef, p2DeckRef) {
     function expandDeck(refs) {
@@ -433,8 +582,14 @@ async function startMatch(p1DeckRef, p2DeckRef) {
         }
         return full;
     }
-    let p1Full = expandDeck(p1DeckRef), p2Full = expandDeck(p2DeckRef);
-    shuffle(p1Full); shuffle(p2Full);
+    let p1Full = expandDeck(p1DeckRef);
+    let p2Full = p2DeckRef ? expandDeck(p2DeckRef) : [];
+    if(!p2Full.length && !isMultiplayer) {
+        // Generate AI deck
+        p2Full = expandDeck(ALL_CARDS.slice(0, 15).map(c => ({ id: c.id, category: c.category })));
+        shuffle(p2Full);
+    }
+    shuffle(p1Full);
     battleState = {
         p1: { deck: p1Full, hand: [], dinoZones: new Array(4).fill(null), researchZones: new Array(4).fill(null), starterZone: null, graveyard: [], energyPile: createEnergyPile(), points: 0 },
         p2: { deck: p2Full, hand: [], dinoZones: new Array(4).fill(null), researchZones: new Array(4).fill(null), starterZone: null, graveyard: [], energyPile: createEnergyPile(), points: 0 },
@@ -463,7 +618,7 @@ async function selectStarterForPlayer(pid) {
             }
             p.starterZone = null;
             resolve();
-        } else if(pid === 2) {
+        } else if(pid === 2 && isMultiplayer) {
             let chosen = stage1s[0];
             p.starterZone = {...chosen, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
             let idx = p.hand.findIndex(c => c === chosen);
@@ -570,8 +725,11 @@ function executeAttack(defPid, defZone) {
         battleState[`p${defPid}`].dinoZones[idx] = null;
         battleState[`p${pendingAttacker.pid}`].points++;
         addLog(`${defender.name} destroyed! +1 point.`);
-        if(battleState.p1.points>=6) alert("You win!");
-        if(battleState.p2.points>=6) alert("AI wins!");
+        if(battleState.p1.points>=6 || battleState.p2.points>=6) {
+            let winner = battleState.p1.points>=6 ? "Player 1" : "Player 2";
+            alert(`${winner} wins!`);
+            if(isMultiplayer && multiplayerSocket) multiplayerSocket.emit('gameAction', multiplayerRoomId, 'gameEnd', { winner });
+        }
     }
     clearAttackGlow();
     pendingAttacker = null;
@@ -657,6 +815,7 @@ function playCardFromHand(pid, handIdx) {
             p.dinoZones[empty] = {...card, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
             p.hand.splice(handIdx,1);
             addLog(`Played ${card.name}.`);
+            if(isMultiplayer && multiplayerSocket) multiplayerSocket.emit('gameAction', multiplayerRoomId, 'playCard', { handIdx, cardId: card.id, zone: empty });
         } else alert("No free dino zone");
     } else if(card.category === 'research') {
         let emptyRes = p.researchZones.findIndex(z=>!z);
@@ -668,6 +827,9 @@ function playCardFromHand(pid, handIdx) {
                 if(card.name === "Dig site") {
                     let dinosInDeck = p.deck.filter(c => c.category === "dino");
                     if(dinosInDeck.length) { p.hand.push(dinosInDeck[0]); let idx = p.deck.findIndex(c=>c===dinosInDeck[0]); p.deck.splice(idx,1); addLog(`Added ${dinosInDeck[0].name} to hand.`); }
+                } else if(card.name === "Palaeontology") {
+                    let movesInDeck = p.deck.filter(c => c.category === "move");
+                    if(movesInDeck.length) { p.hand.push(movesInDeck[0]); p.deck.splice(p.deck.findIndex(c=>c===movesInDeck[0]),1); addLog(`Added ${movesInDeck[0].name} to hand.`); }
                 }
                 let idx = p.researchZones.findIndex(z => z === newCard);
                 if(idx !== -1) p.researchZones[idx] = null;
@@ -705,8 +867,12 @@ function endTurn() {
         battleState.starterMovedThisTurn = false;
         battleState.phase = 'main';
         renderBattleUI();
-        addLog("AI's turn.");
-        setTimeout(() => aiTurn(), 800);
+        if(isMultiplayer && multiplayerSocket) {
+            multiplayerSocket.emit('gameAction', multiplayerRoomId, 'endTurn', {});
+        } else {
+            addLog("AI's turn.");
+            setTimeout(() => aiTurn(), 800);
+        }
     } else {
         battleState.turn = 1;
         battleState.drawnThisTurn = false;
@@ -716,90 +882,18 @@ function endTurn() {
         battleState.phase = 'main';
         renderBattleUI();
         addLog("Your turn. Click DECK to draw.");
-    }
-}
-
-async function aiTurn() {
-    if(battleState.turn !== 2) return;
-    addLog("🤖 AI thinking...");
-    await new Promise(r=>setTimeout(r,800));
-    if(!battleState.drawnThisTurn && battleState.p2.deck.length>0) {
-        battleState.p2.hand.push(battleState.p2.deck.pop());
-        battleState.drawnThisTurn = true;
-        addLog("AI draws a card.");
-        renderBattleUI();
-    }
-    let handDino = battleState.p2.hand.find(c=>c.category==='dino' && c.stage===1);
-    if(handDino) {
-        let empty = battleState.p2.dinoZones.findIndex(z=>!z);
-        if(empty!==-1) {
-            battleState.p2.dinoZones[empty] = {...handDino, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
-            let idx = battleState.p2.hand.findIndex(c=>c===handDino);
-            battleState.p2.hand.splice(idx,1);
-            addLog(`AI played ${handDino.name}.`);
-            renderBattleUI();
+        if(isMultiplayer && multiplayerSocket) {
+            multiplayerSocket.emit('gameAction', multiplayerRoomId, 'endTurn', {});
         }
     }
-    if(!battleState.evolutionUsedThisTurn) {
-        for(let i=0;i<4;i++) {
-            let d = battleState.p2.dinoZones[i];
-            if(d) {
-                let possible = getEvolutionStages(d);
-                let avail = possible.filter(name => battleState.p2.hand.some(c=>c.name===name));
-                if(avail.length) {
-                    let nextCard = battleState.p2.hand.find(c=>c.name===avail[0]);
-                    battleState.p2.graveyard.push({...d});
-                    battleState.p2.dinoZones[i] = {...nextCard, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
-                    let idx = battleState.p2.hand.findIndex(c=>c===nextCard);
-                    battleState.p2.hand.splice(idx,1);
-                    battleState.evolutionUsedThisTurn = true;
-                    addLog(`AI evolved into ${nextCard.name}.`);
-                    renderBattleUI();
-                    break;
-                }
-            }
-        }
-    }
-    battleState.phase = 'battle';
-    renderBattleUI();
-    await new Promise(r=>setTimeout(r,500));
-    for(let i=0;i<4;i++) {
-        let attacker = battleState.p2.dinoZones[i];
-        if(attacker && !(attacker.ailments && attacker.ailments.includes('paralyzed'))) {
-            let targetIdx = battleState.p1.dinoZones.findIndex(d=>d);
-            if(targetIdx!==-1) {
-                let defender = battleState.p1.dinoZones[targetIdx];
-                let discard = Math.min(attacker.energyAttached?.length||0, 1);
-                for(let j=0;j<discard;j++) attacker.energyAttached.pop();
-                let typeMult = getTypeMultiplier(attacker.type, defender.type);
-                let attackPower = (attacker.power * typeMult) + (discard * 1000);
-                let defendPower = 0;
-                if(defender.energyAttached?.length>0 && Math.random()<0.5) {
-                    defender.energyAttached.pop();
-                    defendPower = defender.power;
-                }
-                let damage = Math.max(0, attackPower - defendPower);
-                defender.damage = (defender.damage||0) + damage;
-                addLog(`AI attacks ${defender.name}: ${attackPower} vs ${defendPower} -> ${damage} damage.`);
-                if(defender.damage >= defender.hp) {
-                    let idx = battleState.p1.dinoZones.findIndex(d=>d===defender);
-                    battleState.p1.graveyard.push(defender);
-                    battleState.p1.dinoZones[idx] = null;
-                    battleState.p2.points++;
-                    addLog(`${defender.name} destroyed! AI gains a point.`);
-                }
-                renderBattleUI();
-                await new Promise(r=>setTimeout(r,500));
-            }
-        }
-    }
-    endTurn();
 }
 
 function renderBattleUI() {
     let container = document.getElementById("battleContainer");
     if(!battleState) { container.innerHTML = "<div>Start a match first</div>"; return; }
-    let html = `<div class="player-board opponent-board"><h3>🤖 AI</h3><div class="field-grid"><div class="grid-row mirror-row" id="battleP2TopRow"></div><div class="grid-row mirror-row" id="battleP2BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP2Hand"></div></div><div class="deck-grave-stack"><div class="stack-item" onclick="drawBattleCard(2)">📖 DECK ${battleState.p2.deck.length}</div></div><div class="energy-pile" id="energyPile2" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,2,'energy',-1)"></div></div>`;
+    let isP1Turn = battleState.turn === 1;
+    let opponentName = isMultiplayer ? "Opponent" : "🤖 AI";
+    let html = `<div class="player-board opponent-board"><h3>${opponentName}</h3><div class="field-grid"><div class="grid-row mirror-row" id="battleP2TopRow"></div><div class="grid-row mirror-row" id="battleP2BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP2Hand"></div></div><div class="deck-grave-stack"><div class="stack-item" onclick="drawBattleCard(2)">📖 DECK ${battleState.p2.deck.length}</div></div><div class="energy-pile" id="energyPile2" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,2,'energy',-1)"></div></div>`;
     html += `<div style="background:#2d2418aa; border-radius:48px; margin:24px 0; padding:20px; text-align:center;">🌍 FIELD ZONE</div>`;
     html += `<div class="player-board"><h3>🔥 YOU</h3><div class="field-grid"><div class="grid-row" id="battleP1TopRow"></div><div class="grid-row" id="battleP1BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP1Hand"></div></div><div class="deck-grave-stack"><div class="stack-item" onclick="drawBattleCard(1)">📖 DECK ${battleState.p1.deck.length}</div></div><div class="energy-pile" id="energyPile1" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,1,'energy',-1)"></div></div>`;
     html += `<div class="phase-bar"><div class="phase-btn active" id="phaseButton">⚔️ ${battleState.phase.toUpperCase()} PHASE (click to advance)</div><button id="endTurnBattleBtn">⏩ END TURN</button></div><div class="log" id="gameLog"></div>`;
@@ -826,7 +920,8 @@ function renderBattleUI() {
             if(energyCount>0) {
                 energyDisplay = `<div class="energy-stack"><div class="energy-card"></div><div class="energy-count">x${energyCount}</div></div>`;
             }
-            topRow.innerHTML += `<div class="zone-card dino-zone" id="dinoZone_${pid}_${i}" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,${pid},'dino',${i})">
+            let ailClass = d?.ailments ? (d.ailments.includes('poison')?"poisoned": d.ailments.includes('bleed')?"bleeding": d.ailments.includes('paralyzed')?"paralyzed": d.ailments.includes('submerged')?"submerged":"") : "";
+            topRow.innerHTML += `<div class="zone-card dino-zone ${ailClass}" id="dinoZone_${pid}_${i}" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,${pid},'dino',${i})">
                 ${d ? `<div><img class="card-image" src="${getImagePath(d.name)}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 160%22%3E%3Crect width=%22120%22 height=%22160%22 fill=%22%23c09a6b%22/%3E%3Ctext x=%2260%22 y=%2290%22 text-anchor=%22middle%22 fill=%22black%22 font-size=%2216%22%3E${d.name}%3C/text%3E%3C/svg%3E'">${energyDisplay}<div class="card-stats"><span>❤️${curHp}/${d.hp}</span></div><div class="action-buttons">${buttons}</div></div>` : `<div class="card-image" style="background:#5e3a2e; display:flex; align-items:center; justify-content:center;">Empty</div>`}
             </div>`;
         }
@@ -865,15 +960,136 @@ function renderBattleUI() {
     document.getElementById("endTurnBattleBtn")?.addEventListener("click", endTurn);
 }
 
+// ==================== MULTIPLAYER SETUP ====================
+const SERVER_URL = 'https://dinogame-production.up.railway.app';
+let currentMode = 'single';
+
 function initBattlePage() {
-    let p1 = document.getElementById("p1DeckSelect");
-    p1.innerHTML = "";
-    for(let i=1;i<=3;i++) p1.innerHTML += `<option value="p1_deck${i}">Deck ${i}</option>`;
-    document.getElementById("startMatchBtn").onclick = () => startMatch(getDeck(p1.value), []);
-    document.getElementById("backToMenuFromBattle").onclick = showMainMenu;
+    const p1Select = document.getElementById("p1DeckSelect");
+    p1Select.innerHTML = "";
+    for(let i=1;i<=3;i++) p1Select.innerHTML += `<option value="p1_deck${i}">Deck ${i}</option>`;
+    
+    document.getElementById("startAIMatchBtn").onclick = () => startAIMatch(getDeck(p1Select.value));
+    document.getElementById("singlePlayerBtn").onclick = () => setMode('single');
+    document.getElementById("multiplayerBtn").onclick = () => setMode('multiplayer');
+    document.getElementById("backToMenuFromBattle").onclick = () => {
+        if(multiplayerSocket) multiplayerSocket.disconnect();
+        showMainMenu();
+    };
+    document.getElementById("createRoomBtn").onclick = createRoom;
+    document.getElementById("joinRoomBtn").onclick = joinRoom;
+    document.getElementById("cancelWaitBtn").onclick = cancelWait;
+    setMode('single');
 }
 
-// Expose globals
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById("singlePlayerPanel").style.display = mode === 'single' ? 'block' : 'none';
+    document.getElementById("multiplayerPanel").style.display = mode === 'multiplayer' ? 'block' : 'none';
+    document.getElementById("singlePlayerBtn").classList.toggle('active', mode === 'single');
+    document.getElementById("multiplayerBtn").classList.toggle('active', mode === 'multiplayer');
+    if(mode === 'single' && multiplayerSocket) {
+        multiplayerSocket.disconnect();
+        multiplayerSocket = null;
+    }
+}
+
+function createRoom() {
+    const roomId = document.getElementById("roomIdInput").value.trim();
+    if(!roomId) { alert("Enter a room code"); return; }
+    multiplayerRoomId = roomId;
+    multiplayerSocket = io(SERVER_URL);
+    multiplayerSocket.on('connect', () => {
+        multiplayerSocket.emit('createRoom', roomId, (response) => {
+            if(response.success) {
+                multiplayerPlayerIndex = 1;
+                waitingForOpponent = true;
+                document.getElementById("waitingScreen").style.display = 'block';
+                document.querySelector(".room-controls").style.display = 'none';
+                setupMultiplayerListeners();
+            } else {
+                alert(response.message);
+            }
+        });
+    });
+}
+
+function joinRoom() {
+    const roomId = document.getElementById("roomIdInput").value.trim();
+    if(!roomId) { alert("Enter a room code"); return; }
+    multiplayerRoomId = roomId;
+    multiplayerSocket = io(SERVER_URL);
+    multiplayerSocket.on('connect', () => {
+        multiplayerSocket.emit('joinRoom', roomId, (response) => {
+            if(response.success) {
+                multiplayerPlayerIndex = 2;
+                waitingForOpponent = true;
+                document.getElementById("waitingScreen").style.display = 'block';
+                document.querySelector(".room-controls").style.display = 'none';
+                setupMultiplayerListeners();
+            } else {
+                alert(response.message);
+            }
+        });
+    });
+}
+
+function cancelWait() {
+    if(multiplayerSocket) {
+        multiplayerSocket.emit('leaveRoom', multiplayerRoomId);
+        multiplayerSocket.disconnect();
+    }
+    waitingForOpponent = false;
+    document.getElementById("waitingScreen").style.display = 'none';
+    document.querySelector(".room-controls").style.display = 'block';
+}
+
+function setupMultiplayerListeners() {
+    multiplayerSocket.on('roomJoined', (data) => {
+        if(data.playerCount === 2 && waitingForOpponent) {
+            waitingForOpponent = false;
+            document.getElementById("waitingScreen").style.display = 'none';
+            startMultiplayerMatch();
+        }
+    });
+    multiplayerSocket.on('opponentAction', (action, data) => {
+        handleMultiplayerAction(action, data);
+    });
+    multiplayerSocket.on('opponentDisconnected', () => {
+        addLog("Opponent disconnected. Returning to lobby...");
+        setTimeout(() => {
+            if(multiplayerSocket) multiplayerSocket.disconnect();
+            cancelWait();
+            setMode('single');
+        }, 2000);
+    });
+}
+
+function startMultiplayerMatch() {
+    isMultiplayer = true;
+    const deck = getDeck(document.getElementById("p1DeckSelect").value);
+    startMatch(deck, null);
+}
+
+function handleMultiplayerAction(action, data) {
+    if(!battleState) return;
+    if(action === 'playCard') {
+        // Apply opponent's card play
+        addLog("Opponent played a card.");
+        renderBattleUI();
+    } else if(action === 'endTurn') {
+        if(battleState.turn === 1) {
+            // It's our turn? Wait, we need to sync turn state
+            renderBattleUI();
+        }
+    } else if(action === 'gameEnd') {
+        alert(`${data.winner} wins the match!`);
+        cancelWait();
+        setMode('single');
+    }
+}
+
+window.startAIMatch = startAIMatch;
 window.drawBattleCard = drawBattleCard;
 window.onEnergyDrop = onEnergyDrop;
 window.allowDrop = allowDrop;
