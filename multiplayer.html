@@ -220,7 +220,18 @@
 
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script>
-        // Card database (simplified for multiplayer – same as single player)
+        // ==================== CONFIGURATION ====================
+        const SERVER_URL = 'https://dinogame-production.up.railway.app';
+        
+        // ==================== GLOBALS ====================
+        let socket = null;
+        let playerIndex = null;
+        let roomId = null;
+        let gameState = null;
+        let currentPhase = 'main';
+        let pendingAttacker = null;
+
+        // ==================== CARD DATABASE ====================
         const ALL_CARDS = [
             { id:"Baby rex", name:"Baby rex", type:"fire", stage:1, power:1500, hp:2000, effect:"", category:"dino" },
             { id:"T-rex", name:"T-rex", type:"fire", stage:2, power:3000, hp:3500, effect:"", category:"dino" },
@@ -235,14 +246,7 @@
         function shuffle(arr) { for(let i=arr.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
         function getImagePath(name) { return `images/${encodeURIComponent(name)}.png`; }
 
-        let socket = null;
-        let playerIndex = null;
-        let roomId = null;
-        let gameState = null;
-        let currentPhase = 'main';
-        let pendingAttacker = null;
-
-        // DOM elements
+        // ==================== DOM ELEMENTS ====================
         const lobbyDiv = document.getElementById('lobby');
         const gameArea = document.getElementById('gameArea');
         const roomInput = document.getElementById('roomId');
@@ -251,10 +255,7 @@
         const phaseButton = document.getElementById('phaseButton');
         const playerIdSpan = document.getElementById('playerId');
 
-        // Connect to server (Railway URL – CHANGE THIS TO YOUR RAILWAY URL)
-        const SERVER_URL = 'dinogame-production.up.railway.app'; // Replace with your actual Railway URL
-        let socket = null;
-        
+        // ==================== INITIALISATION ====================
         joinBtn.onclick = () => {
             roomId = roomInput.value.trim();
             if (!roomId) {
@@ -289,7 +290,6 @@
         };
 
         function initGame() {
-            // Initialise local game state (simplified for demo)
             gameState = {
                 p1: { deck: shuffle([...ALL_CARDS]), hand: [], dinoZones: new Array(4).fill(null), researchZones: new Array(4).fill(null), starterZone: null, graveyard: [], energyPile: createEnergyPile(), points: 0 },
                 p2: { deck: shuffle([...ALL_CARDS]), hand: [], dinoZones: new Array(4).fill(null), researchZones: new Array(4).fill(null), starterZone: null, graveyard: [], energyPile: createEnergyPile(), points: 0 },
@@ -298,7 +298,6 @@
                 drawnThisTurn: false,
                 evolutionUsedThisTurn: false
             };
-            // Draw starting hands
             for (let i = 0; i < 6; i++) {
                 if (gameState.p1.deck.length) gameState.p1.hand.push(gameState.p1.deck.pop());
                 if (gameState.p2.deck.length) gameState.p2.hand.push(gameState.p2.deck.pop());
@@ -307,13 +306,7 @@
         }
 
         function handleOpponentAction(action, data) {
-            // Apply opponent's action to local game state
-            if (action === 'playCard') {
-                // Simplified: opponent plays a card
-                addLog(`Opponent played a card.`);
-            } else if (action === 'attack') {
-                addLog(`Opponent attacked!`);
-            }
+            addLog(`Opponent performed: ${action}`);
             renderUI();
         }
 
@@ -341,11 +334,9 @@
             const myState = playerIndex === 1 ? gameState.p1 : gameState.p2;
             const oppState = playerIndex === 1 ? gameState.p2 : gameState.p1;
             
-            // Update deck counts
             document.getElementById('playerDeckCount').innerText = `📖 DECK ${myState.deck.length}`;
             document.getElementById('opponentDeckCount').innerText = `📖 DECK ${oppState.deck.length}`;
             
-            // Render player hand
             const playerHandDiv = document.getElementById('playerHand');
             playerHandDiv.innerHTML = '';
             myState.hand.forEach((card, idx) => {
@@ -358,7 +349,6 @@
                 playerHandDiv.appendChild(cardDiv);
             });
             
-            // Render opponent hand (face down)
             const oppHandDiv = document.getElementById('opponentHand');
             oppHandDiv.innerHTML = '';
             for (let i = 0; i < oppState.hand.length; i++) {
@@ -369,7 +359,6 @@
                 oppHandDiv.appendChild(cardDiv);
             }
             
-            // Render dino zones (simplified – just show names)
             const playerTopRow = document.getElementById('playerTopRow');
             playerTopRow.innerHTML = '';
             myState.dinoZones.forEach((dino, i) => {
@@ -382,7 +371,6 @@
                 playerTopRow.appendChild(zoneDiv);
             });
             
-            // Opponent dino zones
             const oppTopRow = document.getElementById('opponentTopRow');
             oppTopRow.innerHTML = '';
             oppState.dinoZones.forEach((dino, i) => {
@@ -395,7 +383,6 @@
                 oppTopRow.appendChild(zoneDiv);
             });
             
-            // Energy piles (simplified)
             const playerEnergyDiv = document.getElementById('playerEnergyPile');
             playerEnergyDiv.innerHTML = '';
             myState.energyPile.forEach((eng, idx) => {
@@ -438,7 +425,6 @@
         function selectAttacker(zoneIdx) {
             if (currentPhase !== 'battle') { addLog("Can only attack during Battle Phase."); return; }
             pendingAttacker = zoneIdx;
-            // Highlight opponent's dinos
             for (let i = 0; i < 4; i++) {
                 const zoneElem = document.getElementById(`opponentTopRow`).children[i];
                 if (zoneElem && gameState.p2.dinoZones[i]) {
