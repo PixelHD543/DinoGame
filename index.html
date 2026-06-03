@@ -1,920 +1,879 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Dino Duel TCG</title>
-  <style>
-    * { box-sizing: border-box; user-select: none; }
-    body {
-      background: linear-gradient(145deg, #1a3a2a 0%, #0a1f12 100%);
-      font-family: 'Segoe UI', Roboto, 'Trebuchet MS', sans-serif;
-      margin: 0;
-      padding: 20px;
-      color: #f7f3d9;
-    }
-    .page {
-      display: none;
-      max-width: 1800px;
-      margin: 0 auto;
-      background: #2c2116cc;
-      border-radius: 60px;
-      backdrop-filter: blur(4px);
-      padding: 30px;
-      box-shadow: 0 30px 50px rgba(0,0,0,0.6);
-      border: 4px solid #e2b13b;
-    }
-    .page.active { display: block; }
-    .menu-buttons { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin: 60px 0; }
-    .menu-card {
-      background: #1e2a1cdd; border-radius: 48px; padding: 30px; text-align: center;
-      width: 260px; cursor: pointer; transition: 0.2s; border: 2px solid #d4a259;
-    }
-    .menu-card:hover { transform: scale(1.02); background: #2e3e2acc; }
-    .deck-editor { display: flex; gap: 30px; flex-wrap: wrap; }
-    .card-pool { flex: 2; background: #1f2a1cdd; border-radius: 48px; padding: 20px; }
-    .deck-area { flex: 1.5; background: #2d2418dd; border-radius: 48px; padding: 20px; }
-    .search-bar { margin-bottom: 16px; display: flex; gap: 10px; }
-    .search-bar input { flex: 1; padding: 10px; border-radius: 40px; border: none; font-size: 1rem; background: #fef0cf; color: #2c1a0e; }
-    .card-list { display: flex; flex-wrap: wrap; gap: 15px; max-height: 600px; overflow-y: auto; justify-content: flex-start; }
-    .editable-card {
-      background: #2d2418cc; border-radius: 20px; width: 140px; cursor: pointer;
-      border: 2px solid #dba14b; overflow: hidden; transition: 0.1s;
-    }
-    .editable-card img { width: 100%; height: auto; display: block; }
-    .deck-slot {
-      background: #3e2e1e; border-radius: 20px; margin-bottom: 12px;
-      display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid #dba14b;
-    }
-    .deck-slot img { width: 60px; height: auto; border-radius: 12px; background: #c09a6b; cursor: pointer; }
-    .deck-slot button { margin-left: auto; }
-    button {
-      background: #e6a53b; border: none; color: #1f2f0c; font-weight: bold;
-      padding: 8px 16px; border-radius: 50px; cursor: pointer; font-size: 0.9rem;
-      transition: 0.1s;
-    }
-    .danger-btn { background: #aa3e1c; color: white; }
-    .player-board {
-      background: #1e2a1cdd; border-radius: 40px;
-      padding: 20px; margin-bottom: 30px;
-      border: 2px solid #c4913a;
-      box-shadow: inset 0 0 12px #00000044, 0 10px 20px black;
-    }
-    .opponent-board .card-image {
-      transform: rotate(180deg);
-    }
-    .field-grid { display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px; }
-    .grid-row { display: grid; grid-template-columns: repeat(5, minmax(140px, 200px)); justify-content: center; gap: 15px; }
-    .zone-card {
-      background: #4a2e1e;
-      border-radius: 20px;
-      padding: 6px;
-      border: 3px solid #c97e3a;
-      box-shadow: 0 6px 12px black;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      transition: all 0.2s ease;
-    }
-    .starter-zone { background: #5e3a1f; border-color: #ffb347; cursor: pointer; }
-    .energy-zone { background: #c9510c; border-color: #ffdf80; }
-    .research-zone { background: #2d5f6e; border-color: #6bcbff; }
-    .card-image {
-      width: 100%;
-      aspect-ratio: 3 / 4;
-      object-fit: cover;
-      background: #c09a6b;
-      border-radius: 16px;
-      cursor: pointer;
-    }
-    .energy-stack {
-      position: absolute;
-      bottom: 10px;
-      right: 5px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      z-index: 1;
-      pointer-events: none;
-    }
-    .energy-card {
-      width: 40px;
-      height: 30px;
-      background: radial-gradient(circle at 30% 20%, #ffd966, #e6a800);
-      border-radius: 6px;
-      border: 1px solid #ffefb9;
-      margin-top: -24px;
-    }
-    .energy-card:first-child { margin-top: 0; }
-    .energy-count {
-      position: absolute;
-      bottom: -5px;
-      right: -10px;
-      background: #000000cc;
-      border-radius: 20px;
-      padding: 2px 6px;
-      font-size: 0.7rem;
-      font-weight: bold;
-      color: gold;
-      pointer-events: none;
-    }
-    .card-stats {
-      background: #1f1a0fcc;
-      margin-top: 6px;
-      padding: 4px;
-      border-radius: 16px;
-      font-size: 0.8rem;
-      font-weight: bold;
-      text-align: center;
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-    }
-    .action-buttons { display: flex; gap: 6px; margin-top: 8px; justify-content: center; flex-wrap: wrap; }
-    .action-btn {
-      background: #3e2a1c; border: none; color: #ffeaac; font-size: 0.7rem; padding: 4px 10px;
-      border-radius: 30px; cursor: pointer;
-    }
-    .action-btn.attack { background: #b64516; }
-    .action-btn.evolve { background: #6a4e2e; }
-    .hand-area {
-      background: #35281599;
-      border-radius: 40px;
-      padding: 15px;
-      margin-top: 20px;
-      overflow-x: auto;
-      white-space: nowrap;
-    }
-    .hand-container { display: inline-flex; gap: 12px; padding: 8px; }
-    .hand-card {
-      background: #2d2418cc;
-      border-radius: 16px;
-      width: 120px;
-      border: 2px solid #dba14b;
-      display: inline-block;
-      cursor: pointer;
-    }
-    .hand-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 14px; display: block; }
-    .phase-bar { display: flex; gap: 20px; justify-content: center; margin: 20px 0; background: #1f1a0fcc; padding: 12px; border-radius: 60px; }
-    .phase-btn {
-      background: #3e2a1c; color: #ffeaac; border: 2px solid #d4a259;
-      padding: 10px 30px; border-radius: 50px; cursor: pointer; font-size: 1.1rem;
-    }
-    .phase-btn.active { background: #e6a53b; color: #1f2f0c; border-color: #ffdd88; box-shadow: 0 0 16px gold; }
-    .deck-grave-stack {
-      display: flex; gap: 15px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap;
-    }
-    .stack-item {
-      background: #1f1a0fcc; border-radius: 40px; padding: 8px 16px;
-      cursor: pointer; border: 2px solid #b87c3a; min-width: 120px; font-size: 0.9rem;
-    }
-    .energy-pile {
-      display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px;
-      background: #2d2418aa; border-radius: 30px; padding: 12px;
-    }
-    .energy-pile-card {
-      width: 70px; cursor: grab;
-    }
-    .energy-pile-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; background: #c09a6b; }
-    .log { background: #0f0f0fcc; border-radius: 32px; padding: 20px; max-height: 200px; overflow-y: auto; font-size: 1rem; margin-top: 20px; }
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9);
-      z-index: 10000;
-      justify-content: center;
-      align-items: center;
-    }
-    .modal-content {
-      background: #2d2418cc;
-      border-radius: 48px;
-      padding: 20px;
-      max-width: 80vw;
-      max-height: 80vh;
-      overflow: auto;
-      text-align: center;
-    }
-    .search-card, .gy-card {
-      background: #2d2418cc; border-radius: 20px; width: 120px; cursor: pointer;
-      display: inline-block; margin: 8px; padding: 8px;
-    }
-    .search-card img, .gy-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 12px; }
-    .targetable-glow { box-shadow: 0 0 0 4px #00ff00, 0 0 0 8px #00aa00; cursor: pointer; }
-    .attack-arrow {
-      position: fixed;
-      width: 40px; height: 40px;
-      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="red"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>') no-repeat center;
-      background-size: contain;
-      pointer-events: none;
-      z-index: 1000;
-      animation: flyArrow 0.3s ease-out forwards;
-    }
-    @keyframes flyArrow {
-      0% { transform: translate(var(--startX), var(--startY)) scale(1); opacity: 1; }
-      100% { transform: translate(var(--endX), var(--endY)) scale(0.5); opacity: 0; }
-    }
-    .poisoned { border-color: #8B00FF; }
-    .bleeding { border-color: #FF0000; }
-    .paralyzed { border-color: #FFFF00; }
-    .submerged { border-color: #00BFFF; opacity: 0.9; }
-    @media (max-width: 1000px) {
-      .grid-row { grid-template-columns: repeat(5, minmax(100px, 140px)); gap: 10px; }
-      .hand-card { width: 90px; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Dino Duel TCG - Complete Game</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a3a2a 0%, #0a1f12 100%);
+            font-family: 'Segoe UI', Roboto, 'Trebuchet MS', sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #f7f3d9;
+        }
+
+        /* Main Menu */
+        .page {
+            display: none;
+            max-width: 1600px;
+            margin: 0 auto;
+            background: #2c2116cc;
+            border-radius: 60px;
+            backdrop-filter: blur(4px);
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            border: 3px solid #e2b13b;
+        }
+        .page.active { display: block; }
+
+        .menu-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin: 50px 0;
+        }
+        .menu-card {
+            background: #1e2a1cdd;
+            border-radius: 48px;
+            padding: 30px;
+            text-align: center;
+            width: 240px;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid #d4a259;
+        }
+        .menu-card:hover { transform: scale(1.05); background: #2e3e2acc; }
+        .menu-card h2 { margin: 0 0 10px; font-size: 1.6rem; color: #ffdd99; }
+
+        /* Deck Editor */
+        .deck-editor { display: flex; gap: 30px; flex-wrap: wrap; }
+        .card-pool { flex: 2; background: #1f2a1cdd; border-radius: 48px; padding: 20px; }
+        .deck-area { flex: 1.5; background: #2d2418dd; border-radius: 48px; padding: 20px; }
+        .search-bar { margin-bottom: 16px; }
+        .search-bar input { width: 100%; padding: 10px; border-radius: 40px; border: none; background: #fef0cf; }
+        .card-list { display: flex; flex-wrap: wrap; gap: 15px; max-height: 600px; overflow-y: auto; }
+        .editable-card {
+            background: #2d2418cc;
+            border-radius: 20px;
+            width: 120px;
+            cursor: pointer;
+            border: 2px solid #dba14b;
+            overflow: hidden;
+            text-align: center;
+            padding: 8px;
+        }
+        .editable-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 12px; }
+        .deck-slot {
+            background: #3e2e1e;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+        }
+        .deck-slot img { width: 50px; height: auto; border-radius: 10px; }
+        .deck-slot button { margin-left: auto; }
+        button {
+            background: #e6a53b;
+            border: none;
+            color: #1f2f0c;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 50px;
+            cursor: pointer;
+        }
+        .danger-btn { background: #aa3e1c; color: white; }
+
+        /* Battle Layout */
+        .player-board {
+            background: #1e2a1cdd;
+            border-radius: 40px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 2px solid #c4913a;
+        }
+        .opponent-board .card-image { transform: rotate(180deg); }
+        .field-grid { display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px; }
+        .grid-row { display: grid; grid-template-columns: repeat(5, minmax(130px, 180px)); justify-content: center; gap: 15px; }
+        .zone-card {
+            background: #4a2e1e;
+            border-radius: 20px;
+            padding: 8px;
+            border: 3px solid #c97e3a;
+            position: relative;
+            transition: 0.2s;
+        }
+        .starter-zone { background: #5e3a1f; border-color: #ffb347; cursor: pointer; }
+        .energy-zone { background: #c9510c; border-color: #ffdf80; }
+        .research-zone { background: #2d5f6e; border-color: #6bcbff; }
+        .card-image {
+            width: 100%;
+            aspect-ratio: 3/4;
+            object-fit: cover;
+            background: #c09a6b;
+            border-radius: 16px;
+            cursor: pointer;
+        }
+        .energy-stack {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1;
+        }
+        .energy-card {
+            width: 35px;
+            height: 28px;
+            background: radial-gradient(#ffd966, #e6a800);
+            border-radius: 6px;
+            margin-top: -22px;
+        }
+        .energy-card:first-child { margin-top: 0; }
+        .energy-count {
+            background: #000000cc;
+            border-radius: 20px;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: gold;
+        }
+        .card-stats {
+            background: #1f1a0fcc;
+            margin-top: 8px;
+            padding: 5px;
+            border-radius: 16px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+        .action-buttons { display: flex; gap: 6px; margin-top: 8px; justify-content: center; flex-wrap: wrap; }
+        .action-btn {
+            background: #3e2a1c;
+            color: #ffeaac;
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 30px;
+            cursor: pointer;
+        }
+        .action-btn.attack { background: #b64516; }
+        .action-btn.evolve { background: #6a4e2e; }
+
+        .hand-area {
+            background: #35281599;
+            border-radius: 40px;
+            padding: 15px;
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+        .hand-container { display: inline-flex; gap: 12px; padding: 8px; }
+        .hand-card {
+            background: #2d2418cc;
+            border-radius: 16px;
+            width: 110px;
+            border: 2px solid #dba14b;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .hand-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 14px; }
+
+        .phase-bar { display: flex; gap: 20px; justify-content: center; margin: 20px 0; background: #1f1a0fcc; padding: 12px; border-radius: 60px; }
+        .phase-btn {
+            background: #3e2a1c;
+            color: #ffeaac;
+            border: 2px solid #d4a259;
+            padding: 10px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+        }
+        .phase-btn.active { background: #e6a53b; color: #1f2f0c; border-color: #ffdd88; box-shadow: 0 0 16px gold; }
+
+        .deck-grave-stack { display: flex; gap: 15px; justify-content: flex-end; margin-top: 20px; }
+        .stack-item {
+            background: #1f1a0fcc;
+            border-radius: 40px;
+            padding: 8px 16px;
+            cursor: pointer;
+            border: 2px solid #b87c3a;
+        }
+        .energy-pile {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 12px;
+            background: #2d2418aa;
+            border-radius: 30px;
+            padding: 12px;
+        }
+        .energy-pile-card { width: 60px; cursor: grab; }
+        .energy-pile-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; }
+
+        .log {
+            background: #0f0f0fcc;
+            border-radius: 32px;
+            padding: 20px;
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #2d2418cc;
+            border-radius: 48px;
+            padding: 20px;
+            max-width: 80vw;
+            max-height: 80vh;
+            overflow: auto;
+            text-align: center;
+        }
+        .targetable-glow { box-shadow: 0 0 0 4px #00ff00, 0 0 0 8px #00aa00; cursor: pointer; }
+        .poisoned { border-color: #8B00FF; }
+        .bleeding { border-color: #FF0000; }
+        .paralyzed { border-color: #FFFF00; }
+        .submerged { border-color: #00BFFF; opacity: 0.8; }
+        @media (max-width: 1000px) {
+            .grid-row { grid-template-columns: repeat(5, minmax(100px, 130px)); gap: 8px; }
+            .hand-card { width: 85px; }
+        }
+    </style>
 </head>
 <body>
-<div id="starterModal" class="modal"><div class="modal-content"><h3>Choose your Starter Dino</h3><div id="starterChoices" class="search-result-grid"></div></div></div>
-<div id="searchModal" class="modal"><div class="modal-content"><h3 id="searchTitle">Select a card</h3><div id="searchResults" class="search-result-grid"></div><button onclick="closeSearchModal()">Cancel</button></div></div>
-<div id="gyModal" class="modal"><div class="modal-content"><h3>Graveyard</h3><div id="gyList" class="search-result-grid"></div><button onclick="closeGYModal()">Close</button></div></div>
 
 <div id="mainMenuPage" class="page active">
-  <h1 style="text-align:center;">🦖 DINO DUEL TCG 🦕</h1>
-  <div class="menu-buttons">
-    <div class="menu-card" data-page="deckEditor"><h2>📝 DECK EDITOR</h2></div>
-    <div class="menu-card" data-page="battle"><h2>⚔️ BATTLE ARENA</h2></div>
-    <div class="menu-card" data-page="campaign"><h2>📜 CAMPAIGN</h2></div>
-    <div class="menu-card" data-page="rules"><h2>📖 RULES</h2></div>
-  </div>
+    <h1 style="text-align:center;">🦖 DINO DUEL TCG 🦕</h1>
+    <div class="menu-buttons">
+        <div class="menu-card" data-page="deckEditor"><h2>📝 DECK EDITOR</h2></div>
+        <div class="menu-card" data-page="battle"><h2>⚔️ BATTLE ARENA</h2></div>
+        <div class="menu-card" data-page="rules"><h2>📖 RULES</h2></div>
+    </div>
 </div>
 
-<div id="rulesPage" class="page"><h2>Rules</h2><div class="rules-content">First to 6 points wins. Click DECK to draw, play Stage 1 dinos, evolve same type, attack. Defender can use 1 energy to block. Type matchups: Water > Fire > Grass > Ground > Electric > Water.</div><button onclick="showMainMenu()">Back</button></div>
+<div id="rulesPage" class="page">
+    <h2>Rules</h2>
+    <div class="rules-content">
+        <p>First to 6 points wins. Click DECK to draw, play Stage 1 dinos, evolve same type, attack. Defender can use 1 energy to block. Type matchups: Water > Fire > Grass > Ground > Electric > Water.</p>
+        <button onclick="showMainMenu()">Back</button>
+    </div>
+</div>
 
 <div id="deckEditorPage" class="page">
-  <h2>Deck Editor</h2>
-  <div class="editor-controls">
-    <select id="deckSelect">
-      <option value="p1_deck1">Player 1 - Deck 1</option><option value="p1_deck2">Player 1 - Deck 2</option><option value="p1_deck3">Player 1 - Deck 3</option>
-      <option value="p2_deck1">Player 2 - Deck 1</option><option value="p2_deck2">Player 2 - Deck 2</option><option value="p2_deck3">Player 2 - Deck 3</option>
-    </select>
-    <button id="loadDeckBtn">Load</button><button id="saveDeckBtn">Save</button><button id="clearDeckBtn" class="danger-btn">Clear</button>
-    <span id="deckSizeDisplay">0/30</span>
-    <div class="search-bar"><input type="text" id="cardSearch" placeholder="Search card..."></div>
-  </div>
-  <div class="deck-editor">
-    <div class="card-pool"><div id="cardPoolContainer" class="card-list"></div></div>
-    <div class="deck-area"><div id="currentDeckList" class="card-list" style="flex-direction: column;"></div></div>
-  </div>
-  <button onclick="showMainMenu()">Main Menu</button>
+    <h2>Deck Editor</h2>
+    <div class="editor-controls">
+        <select id="deckSelect">
+            <option value="p1_deck1">Player 1 - Deck 1</option>
+            <option value="p1_deck2">Player 1 - Deck 2</option>
+            <option value="p1_deck3">Player 1 - Deck 3</option>
+        </select>
+        <button id="loadDeckBtn">Load</button>
+        <button id="saveDeckBtn">Save</button>
+        <button id="clearDeckBtn" class="danger-btn">Clear</button>
+        <span id="deckSizeDisplay">0/30</span>
+        <div class="search-bar"><input type="text" id="cardSearch" placeholder="Search card..."></div>
+    </div>
+    <div class="deck-editor">
+        <div class="card-pool"><div id="cardPoolContainer" class="card-list"></div></div>
+        <div class="deck-area"><div id="currentDeckList" class="card-list"></div></div>
+    </div>
+    <button onclick="showMainMenu()">Main Menu</button>
 </div>
 
 <div id="battlePage" class="page">
-  <div class="battle-header"><h2>Battle Arena</h2><button id="backToMenuFromBattle">Menu</button></div>
-  <div class="deck-selector">
-    <select id="p1DeckSelect"></select>
-    <select id="p2DeckSelect"></select>
-    <button id="startMatchBtn">Start Match</button>
-  </div>
-  <div id="battleContainer"></div>
-</div>
-
-<div id="campaignPage" class="page">
-  <h2>Campaign Mode</h2><button id="backToMainFromCampaign">Menu</button>
-  <div class="level-selector"><div id="levelList" class="level-grid"></div></div>
-  <div class="crafting-section"><h3>Fossil Forge</h3><div id="fossilTracker">Fossils: 🔸<span id="lowFossils">0</span> 🔶<span id="mediumFossils">0</span> 💎<span id="highFossils">0</span></div><div id="craftableCards" class="craft-list"></div><button id="openCampaignDeckEditorBtn">Edit Campaign Deck</button></div>
-  <div id="campaignBattleContainer"></div>
+    <div class="battle-header"><h2>Battle Arena</h2><button id="backToMenuFromBattle">Menu</button></div>
+    <div class="deck-selector">
+        <select id="p1DeckSelect"></select>
+        <select id="p2DeckSelect"></select>
+        <button id="startMatchBtn">Start Match</button>
+    </div>
+    <div id="battleContainer"></div>
 </div>
 
 <script>
-// --------------------------------------------------------------
-// 1. CARD DATABASE
-// --------------------------------------------------------------
+// ==================== CARD DATABASE ====================
 const CARD_CATALOG = {
-  dinos: [
-    { id:"Acrocanthosaurus", name:"Acrocanthosaurus", type:"fire", stage:2, power:2000, hp:3000, effect:"If attacks injured dino, destroy it (once every 3 turns)", category:"dino" },
-    { id:"Allosaurus", name:"Allosaurus", type:"fire", stage:2, power:3000, hp:3000, effect:"Doubles bleed damage", category:"dino" },
-    { id:"Baby Ichthyosaurus", name:"Baby Ichthyosaurus", type:"water", stage:1, power:100, hp:300, effect:"Add 1 energy to this card once per turn", category:"dino", ability: { cost:0, effect:"add self energy" } },
-    { id:"Baby Kronosaurus", name:"Baby Kronosaurus", type:"water", stage:1, power:800, hp:700, effect:"Remove 1 energy from this card to add 1 energy to any dino", category:"dino", ability: { cost:1, effect:"transfer energy" } },
-    { id:"Baby Megalodon", name:"Baby Megalodon", type:"water", stage:1, power:200, hp:1000, effect:"Starter: add water dino; Field: must remove 1 energy or destroy", category:"dino" },
-    { id:"Baby Mosaasur", name:"Baby Mosaasur", type:"water", stage:1, power:200, hp:1000, effect:"If submerged end of turn, add 1 energy to any dino", category:"dino" },
-    { id:"Baby Plesiosaur", name:"Baby Plesiosaur", type:"water", stage:1, power:250, hp:500, effect:"Starter: discard energy to search research", category:"dino" },
-    { id:"Chasmosaurus", name:"Chasmosaurus", type:"grass", stage:2, power:1500, hp:2000, effect:"Prevents bleed on your dinos. Starter reflects bleed", category:"dino" },
-    { id:"Compsognathus", name:"Compsognathus", type:"electric", stage:1, power:250, hp:250, effect:"Can stack on top of other Compsognathus", category:"dino", stacking: true },
-    { id:"Concavenator", name:"Concavenator", type:"electric", stage:1, power:700, hp:500, effect:"When sent to GY, special Pack token", category:"dino" },
-    { id:"Dilophosaurus", name:"Dilophosaurus", type:"electric", stage:1, power:1000, hp:500, effect:"When opponent takes poison damage, gain half as HP", category:"dino" },
-    { id:"Dunkleosteus", name:"Dunkleosteus", type:"water", stage:2, power:1200, hp:4000, effect:"Remove 1 energy to add Whirlpool to hand", category:"dino", ability: { cost:1, effect:"add whirlpool" } },
-    { id:"Giganotosaurus", name:"Giganotosaurus", type:"fire", stage:2, power:4000, hp:4000, effect:"When discarding energy to attack, double cost", category:"dino" },
-    { id:"Herrerasaurus", name:"Herrerasaurus", type:"electric", stage:1, power:600, hp:800, effect:"When evolved from Baby Velociraptor, special Pack token", category:"dino" },
-    { id:"Ichthyosaurus", name:"Ichthyosaurus", type:"water", stage:2, power:1500, hp:1500, effect:"Submerged: discard energy or surface. End turn add Baby Ichthyosaurus", category:"dino" },
-    { id:"Kronosaurus", name:"Kronosaurus", type:"water", stage:2, power:1200, hp:3500, effect:"Remove energy from opponent dino. If starter, destroy random opponent card", category:"dino", ability: { cost:1, effect:"remove opponent energy" } },
-    { id:"Lokiceratops", name:"Lokiceratops", type:"grass", stage:2, power:1600, hp:1900, effect:"Gains power equal to HP loss", category:"dino" },
-    { id:"Megalodon", name:"Megalodon", type:"water", stage:2, power:3200, hp:2700, effect:"Remove energy from opponent dino. If starter, destroy random opponent card", category:"dino", ability: { cost:1, effect:"remove opponent energy" } },
-    { id:"Mosasaur", name:"Mosasaur", type:"water", stage:2, power:3000, hp:3200, effect:"Gain counters while submerged; remove for damage", category:"dino" },
-    { id:"Nasutoceratops", name:"Nasutoceratops", type:"grass", stage:2, power:1700, hp:2400, effect:"Your dinos cannot be poisoned", category:"dino" },
-    { id:"Natures Revenge", name:"Natures Revenge", type:"grass", stage:3, power:4000, hp:4000, effect:"Immune to card effects and ailments", category:"dino" },
-    { id:"Plesiosaur", name:"Plesiosaur", type:"water", stage:2, power:2500, hp:1800, effect:"Attack: send 2 opponent cards to GY without seeing", category:"dino" },
-    { id:"Spinosaurus", name:"Spinosaurus", type:"water", stage:2, power:2500, hp:4000, effect:"If submerged at start of turn, submerge opponent dino; must stay submerged", category:"dino" },
-    { id:"Styracosaurus", name:"Styracosaurus", type:"grass", stage:1, power:900, hp:1100, effect:"Prevents submerge on your dinos", category:"dino" },
-    { id:"Triceratops", name:"Triceratops", type:"grass", stage:2, power:2000, hp:4000, effect:"Immune to card effects and ailments", category:"dino" },
-    { id:"Tyrannosaurus Rex", name:"Tyrannosaurus Rex", type:"fire", stage:2, power:3000, hp:3000, effect:"Can attack twice per turn", category:"dino" },
-    { id:"Velociraptor", name:"Velociraptor", type:"electric", stage:1, power:500, hp:500, effect:"When evolved from Baby Velociraptor, special Pack token", category:"dino" },
-    { id:"Wrath Of The Sea", name:"Wrath Of The Sea", type:"water", stage:3, power:3500, hp:7500, effect:"When evolved or in starter, all dinos submerged. Opponent can pay 2 energy per dino to surface", category:"dino" },
-    { id:"Baby rex", name:"Baby rex", type:"fire", stage:1, power:1500, hp:2000, effect:"", category:"dino" },
-    { id:"T-rex", name:"T-rex", type:"fire", stage:2, power:3000, hp:3500, effect:"", category:"dino" },
-    { id:"Omega Rex", name:"Omega Rex", type:"fire", stage:3, power:3000, hp:3000, effect:"", category:"dino" },
-    { id:"Baby Triceratops", name:"Baby Triceratops", type:"grass", stage:1, power:2000, hp:2500, effect:"", category:"dino" },
-    { id:"Baby Velociraptor", name:"Baby Velociraptor", type:"electric", stage:1, power:1000, hp:800, effect:"", category:"dino" },
-    { id:"Baby Ankylosaurus", name:"Baby Ankylosaurus", type:"ground", stage:1, power:1500, hp:2500, effect:"", category:"dino" },
-    { id:"Ankylosaurus", name:"Ankylosaurus", type:"ground", stage:2, power:2000, hp:3500, effect:"", category:"dino" },
-    { id:"Baby Argentinosaurus", name:"Baby Argentinosaurus", type:"normal", stage:1, power:1500, hp:3000, effect:"", category:"dino" },
-    { id:"Argentinosaurus", name:"Argentinosaurus", type:"normal", stage:2, power:3500, hp:7000, effect:"", category:"dino" },
-    { id:"Carnotaurus", name:"Carnotaurus", type:"wind", stage:2, power:3500, hp:2000, effect:"", category:"dino" }
-  ],
-  moves: [
-    { id:"Lightning Attack", name:"Lightning Attack", type:"electric", cost:1, effect:"Paralyze defender", category:"move", appliesAilment:"paralyzed" },
-    { id:"Tsunami", name:"Tsunami", type:"water", cost:1, effect:"Submerge target", category:"move", appliesAilment:"submerged" },
-    { id:"Whirlpool", name:"Whirlpool", type:"water", cost:3, effect:"If Dunkleosteus, add energy to aqua dino", category:"move" }
-  ],
-  research: [
-    { id:"Dig site", name:"Dig site", effect:"Add a dino from deck to hand", category:"research", isField: false },
-    { id:"Palaeontology", name:"Palaeontology", effect:"Search deck for a move card", category:"research", isField: false },
-    { id:"Abandoned laboratory", name:"Abandoned laboratory", effect:"Stays; store energy to revive dino", category:"research", isField: true }
-  ]
+    dinos: [
+        { id:"Baby rex", name:"Baby rex", type:"fire", stage:1, power:1500, hp:2000, effect:"", category:"dino" },
+        { id:"T-rex", name:"T-rex", type:"fire", stage:2, power:3000, hp:3500, effect:"", category:"dino" },
+        { id:"Baby Triceratops", name:"Baby Triceratops", type:"grass", stage:1, power:2000, hp:2500, effect:"", category:"dino" },
+        { id:"Triceratops", name:"Triceratops", type:"grass", stage:2, power:4000, hp:4000, effect:"", category:"dino" },
+        { id:"Baby Velociraptor", name:"Baby Velociraptor", type:"electric", stage:1, power:1000, hp:800, effect:"", category:"dino" },
+        { id:"Velociraptor", name:"Velociraptor", type:"electric", stage:1, power:500, hp:500, effect:"", category:"dino" },
+        { id:"Dilophosaurus", name:"Dilophosaurus", type:"electric", stage:1, power:1000, hp:500, effect:"Poison on attack", category:"dino" }
+    ],
+    moves: [
+        { id:"Lightning Attack", name:"Lightning Attack", type:"electric", cost:1, effect:"Paralyze", category:"move", appliesAilment:"paralyzed" },
+        { id:"Tsunami", name:"Tsunami", type:"water", cost:1, effect:"Submerge", category:"move", appliesAilment:"submerged" }
+    ],
+    research: [
+        { id:"Dig site", name:"Dig site", effect:"Add a dino from deck to hand", category:"research", isField: false }
+    ]
 };
 const ALL_CARDS = [...CARD_CATALOG.dinos, ...CARD_CATALOG.moves, ...CARD_CATALOG.research];
 const ENERGY_TYPES = ["Fire","Water","Grass","Ground","Electric","Normal","Wind"];
 function createEnergyCard(t) { return { id:`${t}Energy`, name:`${t} Energy`, category:"energy", energyType:t }; }
-function createEnergyPile() { let pile = []; for(let i=0;i<2;i++) ENERGY_TYPES.forEach(t => pile.push(createEnergyCard(t))); return shuffle(pile); }
+function createEnergyPile() { let pile = []; for(let i=0;i<3;i++) ENERGY_TYPES.forEach(t => pile.push(createEnergyCard(t))); return shuffle(pile); }
 
 function shuffle(arr) { for(let i=arr.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
 function getImagePath(name) { return `images/${encodeURIComponent(name)}.png`; }
-function createPlaceholderImg(cardName) {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'><rect width='300' height='400' fill='#c09a6b'/><text x='150' y='200' text-anchor='middle' fill='black' font-size='24' font-weight='bold'>${cardName}</text><text x='150' y='250' text-anchor='middle' fill='black' font-size='30'>🃏</text></svg>`;
-  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+function getTypeMultiplier(at, dt) { 
+    const eff = { water:{strong:"fire",weak:"electric"}, fire:{strong:"grass",weak:"water"}, grass:{strong:"ground",weak:"fire"}, ground:{strong:"electric",weak:"grass"}, electric:{strong:"water",weak:"ground"} };
+    if(!at || !dt) return 1;
+    if(eff[at]?.strong===dt) return 2;
+    if(eff[at]?.weak===dt) return 0.5;
+    return 1;
 }
-function setImageWithFallback(img, name) {
-  img.src = getImagePath(name);
-  img.onerror = () => { img.src = createPlaceholderImg(name); };
-}
-function getTypeMultiplier(at, dt) { const eff = { water:{strong:"fire",weak:"electric"}, fire:{strong:"grass",weak:"water"}, grass:{strong:"ground",weak:"fire"}, ground:{strong:"electric",weak:"grass"}, electric:{strong:"water",weak:"ground"} }; if(!at || !dt) return 1; if(eff[at]?.strong===dt) return 2; if(eff[at]?.weak===dt) return 0.5; return 1; }
-function applyAilment(dino,a,t=1){ if(!dino.ailments)dino.ailments=[]; if(!dino.ailments.includes(a)){ dino.ailments.push(a); dino.ailmentTurns=dino.ailmentTurns||{}; dino.ailmentTurns[a]=t; } else dino.ailmentTurns[a]=Math.max(dino.ailmentTurns[a]||0,t); }
-function removeAilment(dino,a){ if(dino.ailments){ dino.ailments=dino.ailments.filter(aa=>aa!==a); if(dino.ailmentTurns) delete dino.ailmentTurns[a]; } }
-function getEvolutionStages(dino) {
-  if(dino.stage !== 1) return [];
-  const stages = ALL_CARDS.filter(c => c.category === 'dino' && c.stage === 2 && c.type === dino.type);
-  return stages.map(s => s.name);
-}
-// Deck storage
+function applyAilment(dino,a,t=1){ if(!dino.ailments)dino.ailments=[]; if(!dino.ailments.includes(a)){ dino.ailments.push(a); dino.ailmentTurns={...dino.ailmentTurns, [a]:t}; } }
+function getEvolutionStages(dino) { if(dino.stage !== 1) return []; return ALL_CARDS.filter(c => c.category === 'dino' && c.stage === 2 && c.type === dino.type).map(s => s.name); }
+
+// ==================== DECK STORAGE ====================
 let savedDecks = {};
-function loadDecks() { const s = localStorage.getItem("dinoDecks"); if(s) savedDecks = JSON.parse(s); else savedDecks = { p1_deck1:[], p1_deck2:[], p1_deck3:[], p2_deck1:[], p2_deck2:[], p2_deck3:[] }; }
+function loadDecks() { const s = localStorage.getItem("dinoDecks"); if(s) savedDecks = JSON.parse(s); else savedDecks = { p1_deck1:[], p1_deck2:[], p1_deck3:[] }; }
 function saveDecks() { localStorage.setItem("dinoDecks", JSON.stringify(savedDecks)); }
 function getDeck(key) { return savedDecks[key] || []; }
 function setDeck(key, deck) { savedDecks[key] = deck; saveDecks(); }
 loadDecks();
-function closeSearchModal() { document.getElementById("searchModal").style.display = "none"; }
-function closeGYModal() { document.getElementById("gyModal").style.display = "none"; }
-// Navigation
+
+// ==================== NAVIGATION ====================
 function showMainMenu() { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("mainMenuPage").classList.add("active"); }
 function showDeckEditor() { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("deckEditorPage").classList.add("active"); initDeckEditor(); }
 function showBattlePage() { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("battlePage").classList.add("active"); initBattlePage(); }
 function showRulesPage() { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("rulesPage").classList.add("active"); }
 window.showMainMenu = showMainMenu;
+
 document.querySelectorAll(".menu-card").forEach(card => {
-  card.addEventListener("click", () => {
-    if(card.getAttribute("data-page") === "deckEditor") showDeckEditor();
-    else if(card.getAttribute("data-page") === "battle") showBattlePage();
-    else if(card.getAttribute("data-page") === "campaign") alert("Campaign coming soon");
-    else if(card.getAttribute("data-page") === "rules") showRulesPage();
-  });
+    card.addEventListener("click", () => {
+        if(card.getAttribute("data-page") === "deckEditor") showDeckEditor();
+        else if(card.getAttribute("data-page") === "battle") showBattlePage();
+        else if(card.getAttribute("data-page") === "rules") showRulesPage();
+    });
 });
-// Deck Editor
+
+// ==================== DECK EDITOR ====================
 let currentDeckKey = "p1_deck1";
 let currentDeckCards = [];
 let cardSearchFilter = "";
+
 function renderCardPool() {
-  const container = document.getElementById("cardPoolContainer");
-  if(!container) return;
-  container.innerHTML = "";
-  const filtered = ALL_CARDS.filter(c => c.name.toLowerCase().includes(cardSearchFilter.toLowerCase()));
-  filtered.forEach(card => {
-    const div = document.createElement("div"); div.className = "editable-card";
-    const img = document.createElement("img");
-    setImageWithFallback(img, card.name);
-    div.appendChild(img);
-    div.onclick = () => { if(currentDeckCards.length<30) { currentDeckCards.push({id:card.id, category:card.category}); renderCurrentDeck(); } else alert("Max 30 cards"); };
-    container.appendChild(div);
-  });
+    const container = document.getElementById("cardPoolContainer");
+    if(!container) return;
+    container.innerHTML = "";
+    const filtered = ALL_CARDS.filter(c => c.name.toLowerCase().includes(cardSearchFilter.toLowerCase()));
+    filtered.forEach(card => {
+        const div = document.createElement("div"); div.className = "editable-card";
+        const img = document.createElement("img");
+        img.src = getImagePath(card.name);
+        img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160'%3E%3Crect width='120' height='160' fill='%23c09a6b'/%3E%3Ctext x='60' y='90' text-anchor='middle' fill='black' font-size='24'%3E" + card.name + "%3C/text%3E%3C/svg%3E"; };
+        div.appendChild(img);
+        div.onclick = () => { if(currentDeckCards.length<30) { currentDeckCards.push({id:card.id, category:card.category}); renderCurrentDeck(); } else alert("Max 30 cards"); };
+        container.appendChild(div);
+    });
 }
 function renderCurrentDeck() {
-  const container = document.getElementById("currentDeckList");
-  if(!container) return;
-  container.innerHTML = "";
-  currentDeckCards.forEach((ref,idx) => {
-    const full = ALL_CARDS.find(c => c.id === ref.id && c.category === ref.category);
-    if(!full) return;
-    const slot = document.createElement("div"); slot.className = "deck-slot";
-    const img = document.createElement("img");
-    setImageWithFallback(img, full.name);
-    const nameSpan = document.createElement("span"); nameSpan.innerText = full.name;
-    const delBtn = document.createElement("button"); delBtn.innerText = "❌"; delBtn.onclick = () => { currentDeckCards.splice(idx,1); renderCurrentDeck(); };
-    slot.append(img, nameSpan, delBtn);
-    container.appendChild(slot);
-  });
-  document.getElementById("deckSizeDisplay").innerText = `${currentDeckCards.length}/30`;
+    const container = document.getElementById("currentDeckList");
+    if(!container) return;
+    container.innerHTML = "";
+    currentDeckCards.forEach((ref,idx) => {
+        const full = ALL_CARDS.find(c => c.id === ref.id && c.category === ref.category);
+        if(!full) return;
+        const slot = document.createElement("div"); slot.className = "deck-slot";
+        const img = document.createElement("img");
+        img.src = getImagePath(full.name);
+        img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' fill='%23c09a6b'/%3E%3Ctext x='50' y='80' text-anchor='middle' fill='black' font-size='20'%3E" + full.name + "%3C/text%3E%3C/svg%3E"; };
+        const nameSpan = document.createElement("span"); nameSpan.innerText = full.name;
+        const delBtn = document.createElement("button"); delBtn.innerText = "❌"; delBtn.onclick = () => { currentDeckCards.splice(idx,1); renderCurrentDeck(); };
+        slot.append(img, nameSpan, delBtn);
+        container.appendChild(slot);
+    });
+    document.getElementById("deckSizeDisplay").innerText = `${currentDeckCards.length}/30`;
 }
 function loadDeck() { currentDeckCards = getDeck(currentDeckKey); renderCurrentDeck(); }
 function saveCurrentDeck() { setDeck(currentDeckKey, currentDeckCards); alert("Saved!"); }
 function clearCurrentDeck() { if(confirm("Clear?")) { currentDeckCards = []; renderCurrentDeck(); } }
 function initDeckEditor() {
-  document.getElementById("deckSelect").onchange = (e) => { currentDeckKey = e.target.value; loadDeck(); };
-  document.getElementById("loadDeckBtn").onclick = loadDeck;
-  document.getElementById("saveDeckBtn").onclick = saveCurrentDeck;
-  document.getElementById("clearDeckBtn").onclick = clearCurrentDeck;
-  document.getElementById("cardSearch").oninput = (e) => { cardSearchFilter = e.target.value; renderCardPool(); };
-  renderCardPool(); loadDeck();
+    document.getElementById("deckSelect").onchange = (e) => { currentDeckKey = e.target.value; loadDeck(); };
+    document.getElementById("loadDeckBtn").onclick = loadDeck;
+    document.getElementById("saveDeckBtn").onclick = saveCurrentDeck;
+    document.getElementById("clearDeckBtn").onclick = clearCurrentDeck;
+    document.getElementById("cardSearch").oninput = (e) => { cardSearchFilter = e.target.value; renderCardPool(); };
+    renderCardPool(); loadDeck();
 }
-// Battle
+
+// ==================== BATTLE ENGINE ====================
 let battleState = null;
 let pendingAttacker = null;
 let gameLog = [];
 function addLog(msg) { gameLog.unshift(msg); if(gameLog.length>20) gameLog.pop(); updateLogUI(); }
 function updateLogUI() { const logDiv = document.getElementById("gameLog"); if(logDiv) logDiv.innerHTML = gameLog.map(l=>`🦖 ${l}`).join('<br>'); }
+
 async function startMatch(p1DeckRef, p2DeckRef) {
-  function expandDeck(refs) {
-    let full = [];
-    for(let r of refs) {
-      let c = ALL_CARDS.find(card => card.id === r.id && card.category === r.category);
-      if(c) full.push(c.category === 'dino' ? {...c, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}} : {...c});
+    function expandDeck(refs) {
+        let full = [];
+        for(let r of refs) {
+            let c = ALL_CARDS.find(card => card.id === r.id && card.category === r.category);
+            if(c) full.push(c.category === 'dino' ? {...c, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}} : {...c});
+        }
+        return full;
     }
-    return full;
-  }
-  let p1Full = expandDeck(p1DeckRef), p2Full = expandDeck(p2DeckRef);
-  shuffle(p1Full); shuffle(p2Full);
-  battleState = {
-    p1: { deck: p1Full, hand: [], dinoZones: new Array(4).fill(null), researchZones: new Array(4).fill(null), starterZone: null, graveyard: [], energyPile: createEnergyPile(), points: 0 },
-    p2: { deck: p2Full, hand: [], dinoZones: new Array(4).fill(null), researchZones: new Array(4).fill(null), starterZone: null, graveyard: [], energyPile: createEnergyPile(), points: 0 },
-    turn: 1, phase: 'main', drawnThisTurn: false, usedSwap: false, evolutionUsedThisTurn: false, starterMovedThisTurn: false
-  };
-  for(let pid of [1,2]){ let p = battleState[`p${pid}`]; for(let i=0;i<6 && p.deck.length;i++) p.hand.push(p.deck.pop()); }
-  await selectStarterForPlayer(1);
-  await selectStarterForPlayer(2);
-  renderBattleUI();
-  addLog("Match started. Player 1 turn. Click DECK to draw.");
+    let p1Full = expandDeck(p1DeckRef), p2Full = expandDeck(p2DeckRef);
+    shuffle(p1Full); shuffle(p2Full);
+    battleState = {
+        p1: { deck: p1Full, hand: [], dinoZones: new Array(4).fill(null), researchZones: new Array(4).fill(null), starterZone: null, graveyard: [], energyPile: createEnergyPile(), points: 0 },
+        p2: { deck: p2Full, hand: [], dinoZones: new Array(4).fill(null), researchZones: new Array(4).fill(null), starterZone: null, graveyard: [], energyPile: createEnergyPile(), points: 0 },
+        turn: 1, phase: 'main', drawnThisTurn: false, usedSwap: false, evolutionUsedThisTurn: false, starterMovedThisTurn: false
+    };
+    for(let pid of [1,2]){ let p = battleState[`p${pid}`]; for(let i=0;i<6 && p.deck.length;i++) p.hand.push(p.deck.pop()); }
+    await selectStarterForPlayer(1);
+    await selectStarterForPlayer(2);
+    renderBattleUI();
+    addLog("Match started! Player 1's turn. Click DECK to draw.");
 }
+
 async function selectStarterForPlayer(pid) {
-  return new Promise((resolve) => {
-    let p = battleState[`p${pid}`];
-    let stage1s = p.hand.filter(c => c.category === 'dino' && c.stage === 1);
-    if(stage1s.length === 0) {
-      let starterCard = p.deck.find(c => c.category === 'dino');
-      if(starterCard) {
-        let idx = p.deck.findIndex(c => c === starterCard);
-        let starter = {...starterCard, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
-        let emptySlot = p.dinoZones.findIndex(z => z === null);
-        if(emptySlot !== -1) p.dinoZones[emptySlot] = starter;
-        else p.graveyard.push(starter);
-        p.deck.splice(idx,1);
-      }
-      p.starterZone = null;
-      resolve();
-    } else if(pid === 2) {
-      let chosen = stage1s[0];
-      p.starterZone = {...chosen, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
-      let idx = p.hand.findIndex(c => c === chosen);
-      p.hand.splice(idx,1);
-      resolve();
-    } else {
-      const modal = document.getElementById("starterModal");
-      const container = document.getElementById("starterChoices");
-      container.innerHTML = "";
-      stage1s.forEach(card => {
-        const cardDiv = document.createElement("div"); cardDiv.className = "search-card";
-        const img = document.createElement("img");
-        setImageWithFallback(img, card.name);
-        cardDiv.appendChild(img);
-        cardDiv.onclick = () => {
-          p.starterZone = {...card, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
-          let idx = p.hand.findIndex(c => c === card);
-          p.hand.splice(idx,1);
-          modal.style.display = "none";
-          resolve();
-        };
-        container.appendChild(cardDiv);
-      });
-      modal.style.display = "flex";
-    }
-  });
+    return new Promise((resolve) => {
+        let p = battleState[`p${pid}`];
+        let stage1s = p.hand.filter(c => c.category === 'dino' && c.stage === 1);
+        if(stage1s.length === 0) {
+            let starterCard = p.deck.find(c => c.category === 'dino');
+            if(starterCard) {
+                let idx = p.deck.findIndex(c => c === starterCard);
+                let starter = {...starterCard, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+                let emptySlot = p.dinoZones.findIndex(z => z === null);
+                if(emptySlot !== -1) p.dinoZones[emptySlot] = starter;
+                else p.graveyard.push(starter);
+                p.deck.splice(idx,1);
+            }
+            p.starterZone = null;
+            resolve();
+        } else if(pid === 2) {
+            let chosen = stage1s[0];
+            p.starterZone = {...chosen, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+            let idx = p.hand.findIndex(c => c === chosen);
+            p.hand.splice(idx,1);
+            resolve();
+        } else {
+            const modal = document.getElementById("starterModal") || (()=>{ const m=document.createElement("div"); m.id="starterModal"; m.className="modal"; m.innerHTML=`<div class="modal-content"><h3>Choose Starter</h3><div id="starterChoices"></div><button onclick="this.parentElement.parentElement.style.display='none'">Cancel</button></div>`; document.body.appendChild(m); return m; })();
+            const container = document.getElementById("starterChoices");
+            container.innerHTML = "";
+            stage1s.forEach(card => {
+                const cardDiv = document.createElement("div"); cardDiv.className = "search-card";
+                const img = document.createElement("img");
+                img.src = getImagePath(card.name);
+                img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160'%3E%3Crect width='120' height='160' fill='%23c09a6b'/%3E%3Ctext x='60' y='90' text-anchor='middle' fill='black'%3E${card.name}%3C/text%3E%3C/svg%3E"; };
+                cardDiv.appendChild(img);
+                cardDiv.onclick = () => {
+                    p.starterZone = {...card, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+                    let idx = p.hand.findIndex(c => c === card);
+                    p.hand.splice(idx,1);
+                    modal.style.display = "none";
+                    resolve();
+                };
+                container.appendChild(cardDiv);
+            });
+            modal.style.display = "flex";
+        }
+    });
 }
+
 function drawBattleCard(pid) {
-  if(battleState.turn !== pid || battleState.drawnThisTurn) return false;
-  let p = battleState[`p${pid}`];
-  if(p.deck.length === 0) return false;
-  p.hand.push(p.deck.pop());
-  battleState.drawnThisTurn = true;
-  renderBattleUI();
-  return true;
+    if(battleState.turn !== pid || battleState.drawnThisTurn) return false;
+    let p = battleState[`p${pid}`];
+    if(p.deck.length === 0) return false;
+    p.hand.push(p.deck.pop());
+    battleState.drawnThisTurn = true;
+    renderBattleUI();
+    addLog(`Player ${pid} drew a card.`);
+    return true;
 }
+
 function onEnergyDragStart(e, pid, idx) { e.dataTransfer.setData('text/plain', JSON.stringify({pid,idx})); }
 function onEnergyDrop(e, targetPid, type, zoneIdx) {
-  e.preventDefault();
-  const raw = e.dataTransfer.getData('text/plain');
-  if(!raw) return;
-  const {pid, idx} = JSON.parse(raw);
-  if(pid !== targetPid) return;
-  let p = battleState[`p${pid}`];
-  let energy = p.energyPile[idx];
-  if(!energy) return;
-  if(type === 'dino') {
-    let dino = p.dinoZones[zoneIdx];
-    if(!dino) return;
-    p.energyPile.splice(idx,1);
-    if(!dino.energyAttached) dino.energyAttached = [];
-    dino.energyAttached.push(energy);
-    addLog(`Attached ${energy.name} to ${dino.name}.`);
-  } else if(type === 'research') {
-    let res = p.researchZones[zoneIdx];
-    if(!res) return;
-    p.energyPile.splice(idx,1);
-    if(!res.energyStored) res.energyStored = 0;
-    res.energyStored++;
-    addLog(`Added energy to ${res.name}.`);
-  }
-  renderBattleUI();
+    e.preventDefault();
+    const raw = e.dataTransfer.getData('text/plain');
+    if(!raw) return;
+    const {pid, idx} = JSON.parse(raw);
+    if(pid !== targetPid) return;
+    let p = battleState[`p${pid}`];
+    let energy = p.energyPile[idx];
+    if(!energy) return;
+    if(type === 'dino') {
+        let dino = p.dinoZones[zoneIdx];
+        if(!dino) return;
+        p.energyPile.splice(idx,1);
+        if(!dino.energyAttached) dino.energyAttached = [];
+        dino.energyAttached.push(energy);
+        addLog(`Attached ${energy.name} to ${dino.name}.`);
+    }
+    renderBattleUI();
 }
 function allowDrop(e) { e.preventDefault(); }
+
 function startAttackSelection(pid, zoneIdx) {
-  if(battleState.turn !== pid || battleState.phase !== 'battle') return;
-  let attacker = battleState[`p${pid}`].dinoZones[zoneIdx];
-  if(!attacker || (attacker.ailments && attacker.ailments.includes('paralyzed'))) return;
-  pendingAttacker = {pid, zoneIdx, dino: attacker};
-  let oppPid = pid===1?2:1;
-  for(let i=0;i<4;i++) {
-    let d = battleState[`p${oppPid}`].dinoZones[i];
-    if(d) {
-      let elem = document.getElementById(`dinoZone_${oppPid}_${i}`);
-      if(elem) {
-        elem.classList.add("targetable-glow");
-        elem.onclick = () => executeAttack(oppPid, i);
-      }
+    if(battleState.turn !== pid || battleState.phase !== 'battle') return;
+    let attacker = battleState[`p${pid}`].dinoZones[zoneIdx];
+    if(!attacker || (attacker.ailments && attacker.ailments.includes('paralyzed'))) return;
+    pendingAttacker = {pid, zoneIdx, dino: attacker};
+    let oppPid = pid===1?2:1;
+    for(let i=0;i<4;i++) {
+        let d = battleState[`p${oppPid}`].dinoZones[i];
+        if(d) {
+            let elem = document.getElementById(`dinoZone_${oppPid}_${i}`);
+            if(elem) {
+                elem.classList.add("targetable-glow");
+                elem.onclick = () => executeAttack(oppPid, i);
+            }
+        }
     }
-  }
-  let hasDino = battleState[`p${oppPid}`].dinoZones.some(d=>d);
-  if(!hasDino && confirm("Direct attack?")) executeDirectAttack(pid, attacker);
+    let hasDino = battleState[`p${oppPid}`].dinoZones.some(d=>d);
+    if(!hasDino && confirm("Direct attack?")) executeDirectAttack(pid, attacker);
 }
+
 function executeAttack(defPid, defZone) {
-  if(!pendingAttacker) return;
-  let attacker = pendingAttacker.dino;
-  let defender = battleState[`p${defPid}`].dinoZones[defZone];
-  if(!defender) { clearAttackGlow(); pendingAttacker=null; return; }
-  let discard = parseInt(prompt(`Discard how many energies? (0-${attacker.energyAttached?.length||0})`)) || 0;
-  discard = Math.min(discard, attacker.energyAttached?.length||0);
-  for(let i=0;i<discard;i++) attacker.energyAttached.pop();
-  let typeMult = getTypeMultiplier(attacker.type, defender.type);
-  let attackPower = (attacker.power * typeMult) + (discard * 1000);
-  let defendPower = 0;
-  let canDefend = (defender.energyAttached?.length>0) || (defender.ailments && defender.ailments.includes('fortified'));
-  if(canDefend && confirm(`Defender uses 1 energy to block?`)) {
-    if(defender.energyAttached?.length>0) { defender.energyAttached.pop(); defendPower = defender.power; }
-  }
-  let damage = Math.max(0, attackPower - defendPower);
-  defender.damage = (defender.damage||0) + damage;
-  addLog(`${attacker.name} attacks: ${attackPower} vs ${defendPower} -> ${damage} damage.`);
-  if(defender.damage >= defender.hp) {
-    let idx = battleState[`p${defPid}`].dinoZones.findIndex(d=>d===defender);
-    battleState[`p${defPid}`].graveyard.push(defender);
-    battleState[`p${defPid}`].dinoZones[idx] = null;
-    battleState[`p${pendingAttacker.pid}`].points++;
-    addLog(`${defender.name} destroyed! +1 point.`);
-  }
-  clearAttackGlow();
-  pendingAttacker = null;
-  renderBattleUI();
-  if(battleState.p1.points>=6 || battleState.p2.points>=6) alert("Game Over!");
+    if(!pendingAttacker) return;
+    let attacker = pendingAttacker.dino;
+    let defender = battleState[`p${defPid}`].dinoZones[defZone];
+    if(!defender) { clearAttackGlow(); pendingAttacker=null; return; }
+    let discard = parseInt(prompt(`Discard how many energies? (0-${attacker.energyAttached?.length||0})`)) || 0;
+    discard = Math.min(discard, attacker.energyAttached?.length||0);
+    for(let i=0;i<discard;i++) attacker.energyAttached.pop();
+    let typeMult = getTypeMultiplier(attacker.type, defender.type);
+    let attackPower = (attacker.power * typeMult) + (discard * 1000);
+    let defendPower = 0;
+    let canDefend = (defender.energyAttached?.length>0) || (defender.ailments && defender.ailments.includes('fortified'));
+    if(canDefend && confirm(`Defender uses 1 energy to block?`)) {
+        if(defender.energyAttached?.length>0) { defender.energyAttached.pop(); defendPower = defender.power; }
+    }
+    let damage = Math.max(0, attackPower - defendPower);
+    defender.damage = (defender.damage||0) + damage;
+    addLog(`${attacker.name} attacks: ${attackPower} vs ${defendPower} -> ${damage} damage.`);
+    if(defender.damage >= defender.hp) {
+        let idx = battleState[`p${defPid}`].dinoZones.findIndex(d=>d===defender);
+        battleState[`p${defPid}`].graveyard.push(defender);
+        battleState[`p${defPid}`].dinoZones[idx] = null;
+        battleState[`p${pendingAttacker.pid}`].points++;
+        addLog(`${defender.name} destroyed! +1 point.`);
+        if(battleState.p1.points>=6) alert("You win!");
+        if(battleState.p2.points>=6) alert("AI wins!");
+    }
+    clearAttackGlow();
+    pendingAttacker = null;
+    renderBattleUI();
 }
+
 function executeDirectAttack(pid, attacker) {
-  let discard = parseInt(prompt(`Direct attack! Discard energies (0-${attacker.energyAttached?.length||0})`)) || 0;
-  discard = Math.min(discard, attacker.energyAttached?.length||0);
-  for(let i=0;i<discard;i++) attacker.energyAttached.pop();
-  let damage = attacker.power + discard*1000;
-  let oppPid = pid===1?2:1;
-  battleState[`p${oppPid}`].points++;
-  addLog(`Direct attack deals ${damage} damage! +1 point.`);
-  pendingAttacker = null;
-  renderBattleUI();
+    let discard = parseInt(prompt(`Direct attack! Discard energies (0-${attacker.energyAttached?.length||0})`)) || 0;
+    discard = Math.min(discard, attacker.energyAttached?.length||0);
+    for(let i=0;i<discard;i++) attacker.energyAttached.pop();
+    let damage = attacker.power + discard*1000;
+    let oppPid = pid===1?2:1;
+    battleState[`p${oppPid}`].points++;
+    addLog(`Direct attack deals ${damage} damage! +1 point.`);
+    pendingAttacker = null;
+    renderBattleUI();
 }
+
 function clearAttackGlow() {
-  for(let pid of [1,2]) for(let i=0;i<4;i++) {
-    let elem = document.getElementById(`dinoZone_${pid}_${i}`);
-    if(elem) { elem.classList.remove("targetable-glow"); elem.onclick = null; }
-  }
+    for(let pid of [1,2]) for(let i=0;i<4;i++) {
+        let elem = document.getElementById(`dinoZone_${pid}_${i}`);
+        if(elem) { elem.classList.remove("targetable-glow"); elem.onclick = null; }
+    }
 }
+
 async function attemptEvolution(pid, zoneIdx) {
-  if(battleState.turn !== pid || battleState.phase !== 'main') return;
-  if(battleState.evolutionUsedThisTurn) { addLog("Already evolved once this turn."); return; }
-  let dino = battleState[`p${pid}`].dinoZones[zoneIdx];
-  if(!dino) return;
-  let possible = getEvolutionStages(dino);
-  let available = possible.filter(name => battleState[`p${pid}`].hand.some(c => c.name === name && c.category === 'dino'));
-  if(available.length===0) { addLog(`No Stage 2 of same type in hand.`); return; }
-  let chosenName = available[0];
-  if(available.length>1) {
-    chosenName = await new Promise(resolve => {
-      const modal = document.getElementById("searchModal");
-      document.getElementById("searchTitle").innerText = `Choose evolution for ${dino.name}`;
-      const cont = document.getElementById("searchResults");
-      cont.innerHTML = "";
-      available.forEach(name => {
-        const card = ALL_CARDS.find(c=>c.name===name);
-        const div = document.createElement("div"); div.className = "search-card";
-        const img = document.createElement("img");
-        setImageWithFallback(img, card.name);
-        div.appendChild(img);
-        div.onclick = () => { resolve(card.name); modal.style.display="none"; };
-        cont.appendChild(div);
-      });
-      const cancel = document.createElement("button"); cancel.innerText="Cancel"; cancel.onclick=()=>{resolve(null);modal.style.display="none";};
-      cont.appendChild(cancel);
-      modal.style.display="flex";
-    });
-    if(!chosenName) return;
-  }
-  let handIdx = battleState[`p${pid}`].hand.findIndex(c => c.name === chosenName);
-  if(handIdx===-1) return;
-  let next = battleState[`p${pid}`].hand[handIdx];
-  battleState[`p${pid}`].graveyard.push({...dino});
-  battleState[`p${pid}`].dinoZones[zoneIdx] = {...next, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
-  battleState[`p${pid}`].hand.splice(handIdx,1);
-  battleState.evolutionUsedThisTurn = true;
-  addLog(`${dino.name} evolved into ${next.name}!`);
-  renderBattleUI();
+    if(battleState.turn !== pid || battleState.phase !== 'main') return;
+    if(battleState.evolutionUsedThisTurn) { addLog("Already evolved once this turn."); return; }
+    let dino = battleState[`p${pid}`].dinoZones[zoneIdx];
+    if(!dino) return;
+    let possible = getEvolutionStages(dino);
+    let available = possible.filter(name => battleState[`p${pid}`].hand.some(c => c.name === name));
+    if(available.length===0) { addLog(`No Stage 2 of same type in hand.`); return; }
+    let chosenName = available[0];
+    let handIdx = battleState[`p${pid}`].hand.findIndex(c => c.name === chosenName);
+    if(handIdx===-1) return;
+    let next = battleState[`p${pid}`].hand[handIdx];
+    battleState[`p${pid}`].graveyard.push({...dino});
+    battleState[`p${pid}`].dinoZones[zoneIdx] = {...next, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+    battleState[`p${pid}`].hand.splice(handIdx,1);
+    battleState.evolutionUsedThisTurn = true;
+    addLog(`${dino.name} evolved into ${next.name}!`);
+    renderBattleUI();
 }
+
 function swapStarterWithField(pid, zoneIdx) {
-  if(battleState.turn !== pid || battleState.phase !== 'main' || battleState.usedSwap) return;
-  let field = battleState[`p${pid}`].dinoZones[zoneIdx];
-  let starter = battleState[`p${pid}`].starterZone;
-  if(!field || !starter) return;
-  battleState[`p${pid}`].dinoZones[zoneIdx] = {...starter, damage:0, energyAttached:[], ailments:starter.ailments||[], ailmentTurns:starter.ailmentTurns||{}};
-  battleState[`p${pid}`].starterZone = {...field, damage:0, energyAttached:[], ailments:field.ailments||[], ailmentTurns:field.ailmentTurns||{}};
-  battleState.usedSwap = true;
-  addLog(`Swapped ${field.name} with starter.`);
-  renderBattleUI();
+    if(battleState.turn !== pid || battleState.phase !== 'main' || battleState.usedSwap) return;
+    let field = battleState[`p${pid}`].dinoZones[zoneIdx];
+    let starter = battleState[`p${pid}`].starterZone;
+    if(!field || !starter) return;
+    battleState[`p${pid}`].dinoZones[zoneIdx] = {...starter, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+    battleState[`p${pid}`].starterZone = {...field, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+    battleState.usedSwap = true;
+    addLog(`Swapped ${field.name} with starter.`);
+    renderBattleUI();
 }
+
 function moveStarterToField(pid) {
-  if(battleState.turn !== pid || battleState.phase !== 'main') return;
-  if(battleState.starterMovedThisTurn) { addLog("Already moved starter."); return; }
-  let p = battleState[`p${pid}`];
-  if(!p.starterZone) return;
-  let hasDino = p.dinoZones.some(d=>d);
-  if(hasDino) { addLog("Already have dinos on field."); return; }
-  let empty = p.dinoZones.findIndex(z=>!z);
-  if(empty===-1) return;
-  p.dinoZones[empty] = {...p.starterZone, damage:0, energyAttached:[], ailments:p.starterZone.ailments||[], ailmentTurns:p.starterZone.ailmentTurns||{}};
-  p.starterZone = null;
-  battleState.starterMovedThisTurn = true;
-  addLog(`Moved starter to field.`);
-  renderBattleUI();
-}
-function playCardFromHand(pid, handIdx) {
-  if(battleState.turn !== pid || battleState.phase !== 'main') return;
-  let p = battleState[`p${pid}`];
-  let card = p.hand[handIdx];
-  if(!card) return;
-  if(card.category === 'dino') {
-    if(card.stage !== 1) { addLog("Only Stage 1 can be played directly."); return; }
+    if(battleState.turn !== pid || battleState.phase !== 'main') return;
+    if(battleState.starterMovedThisTurn) { addLog("Already moved starter."); return; }
+    let p = battleState[`p${pid}`];
+    if(!p.starterZone) return;
+    let hasDino = p.dinoZones.some(d=>d);
+    if(hasDino) { addLog("Already have dinos on field."); return; }
     let empty = p.dinoZones.findIndex(z=>!z);
-    if(empty !== -1) {
-      p.dinoZones[empty] = {...card, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
-      p.hand.splice(handIdx,1);
-      addLog(`Played ${card.name}.`);
-    } else alert("No free dino zone");
-  } else if(card.category === 'research') {
-    let emptyRes = p.researchZones.findIndex(z=>!z);
-    if(emptyRes !== -1) {
-      let newCard = {...card};
-      p.researchZones[emptyRes] = newCard;
-      p.hand.splice(handIdx,1);
-      if(!card.isField) {
-        if(card.name === "Dig site") {
-          let dinosInDeck = p.deck.filter(c => c.category === "dino");
-          if(dinosInDeck.length) { p.hand.push(dinosInDeck[0]); let idx = p.deck.findIndex(c=>c===dinosInDeck[0]); p.deck.splice(idx,1); addLog(`Added ${dinosInDeck[0].name} to hand.`); }
-        } else if(card.name === "Palaeontology") {
-          let movesInDeck = p.deck.filter(c => c.category === "move");
-          if(movesInDeck.length) { p.hand.push(movesInDeck[0]); p.deck.splice(p.deck.findIndex(c=>c===movesInDeck[0]),1); addLog(`Added ${movesInDeck[0].name} to hand.`); }
-        }
-        let idx = p.researchZones.findIndex(z => z === newCard);
-        if(idx !== -1) p.researchZones[idx] = null;
-        p.graveyard.push(newCard);
-        renderBattleUI();
-      } else addLog(`${card.name} placed on field.`);
-    } else alert("No free research zone");
-  } else if(card.category === 'move') {
-    if(battleState.phase !== 'battle') return;
-    if(card.appliesAilment) {
-      let targetIdx = prompt(`Target opponent dino (0-3) to apply ${card.appliesAilment}:`);
-      let oppPid = pid===1?2:1;
-      let target = battleState[`p${oppPid}`].dinoZones[parseInt(targetIdx)];
-      if(target) { applyAilment(target, card.appliesAilment, 1); addLog(`${target.name} is now ${card.appliesAilment}!`); }
-    } else {
-      let targetIdx = prompt("Your dino zone (0-3) to give +500 power:");
-      let d = p.dinoZones[parseInt(targetIdx)];
-      if(d) d.power += 500;
-    }
-    p.hand.splice(handIdx,1);
-    p.graveyard.push(card);
-  }
-  renderBattleUI();
+    if(empty===-1) return;
+    p.dinoZones[empty] = {...p.starterZone, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+    p.starterZone = null;
+    battleState.starterMovedThisTurn = true;
+    addLog(`Moved starter to field.`);
+    renderBattleUI();
 }
+
+function playCardFromHand(pid, handIdx) {
+    if(battleState.turn !== pid || battleState.phase !== 'main') return;
+    let p = battleState[`p${pid}`];
+    let card = p.hand[handIdx];
+    if(!card) return;
+    if(card.category === 'dino') {
+        if(card.stage !== 1) { addLog("Only Stage 1 can be played directly."); return; }
+        let empty = p.dinoZones.findIndex(z=>!z);
+        if(empty !== -1) {
+            p.dinoZones[empty] = {...card, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+            p.hand.splice(handIdx,1);
+            addLog(`Played ${card.name}.`);
+        } else alert("No free dino zone");
+    } else if(card.category === 'research') {
+        let emptyRes = p.researchZones.findIndex(z=>!z);
+        if(emptyRes !== -1) {
+            let newCard = {...card};
+            p.researchZones[emptyRes] = newCard;
+            p.hand.splice(handIdx,1);
+            if(!card.isField) {
+                if(card.name === "Dig site") {
+                    let dinosInDeck = p.deck.filter(c => c.category === "dino");
+                    if(dinosInDeck.length) { p.hand.push(dinosInDeck[0]); let idx = p.deck.findIndex(c=>c===dinosInDeck[0]); p.deck.splice(idx,1); addLog(`Added ${dinosInDeck[0].name} to hand.`); }
+                }
+                let idx = p.researchZones.findIndex(z => z === newCard);
+                if(idx !== -1) p.researchZones[idx] = null;
+                p.graveyard.push(newCard);
+                renderBattleUI();
+            } else addLog(`${card.name} placed on field.`);
+        } else alert("No free research zone");
+    } else if(card.category === 'move') {
+        if(battleState.phase !== 'battle') return;
+        if(card.appliesAilment) {
+            let targetIdx = prompt(`Target opponent dino (0-3) to apply ${card.appliesAilment}:`);
+            let oppPid = pid===1?2:1;
+            let target = battleState[`p${oppPid}`].dinoZones[parseInt(targetIdx)];
+            if(target) { applyAilment(target, card.appliesAilment, 1); addLog(`${target.name} is now ${card.appliesAilment}!`); }
+        }
+        p.hand.splice(handIdx,1);
+        p.graveyard.push(card);
+    }
+    renderBattleUI();
+}
+
 function nextPhase() {
-  if(battleState.phase === 'main') battleState.phase = 'battle';
-  else if(battleState.phase === 'battle') battleState.phase = 'end';
-  else if(battleState.phase === 'end') endTurn();
-  renderBattleUI();
+    if(battleState.phase === 'main') battleState.phase = 'battle';
+    else if(battleState.phase === 'battle') battleState.phase = 'end';
+    else if(battleState.phase === 'end') endTurn();
+    renderBattleUI();
 }
+
 function endTurn() {
-  if(battleState.turn === 1) {
-    battleState.turn = 2;
-    battleState.drawnThisTurn = false;
-    battleState.usedSwap = false;
-    battleState.evolutionUsedThisTurn = false;
-    battleState.starterMovedThisTurn = false;
-    battleState.phase = 'main';
-    renderBattleUI();
-    addLog("AI's turn.");
-    setTimeout(() => aiTurn(), 800);
-  } else {
-    battleState.turn = 1;
-    battleState.drawnThisTurn = false;
-    battleState.usedSwap = false;
-    battleState.evolutionUsedThisTurn = false;
-    battleState.starterMovedThisTurn = false;
-    battleState.phase = 'main';
-    renderBattleUI();
-    addLog("Your turn. Click DECK to draw.");
-  }
-}
-async function aiTurn() {
-  if(battleState.turn !== 2) return;
-  addLog("🤖 AI thinking...");
-  await new Promise(r=>setTimeout(r,800));
-  if(!battleState.drawnThisTurn && battleState.p2.deck.length>0) {
-    battleState.p2.hand.push(battleState.p2.deck.pop());
-    battleState.drawnThisTurn = true;
-    addLog("AI draws a card.");
-    renderBattleUI();
-  }
-  let handDino = battleState.p2.hand.find(c=>c.category==='dino' && c.stage===1);
-  if(handDino) {
-    let empty = battleState.p2.dinoZones.findIndex(z=>!z);
-    if(empty!==-1) {
-      battleState.p2.dinoZones[empty] = {...handDino, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
-      let idx = battleState.p2.hand.findIndex(c=>c===handDino);
-      battleState.p2.hand.splice(idx,1);
-      addLog(`AI played ${handDino.name}.`);
-      renderBattleUI();
-    }
-  }
-  if(!battleState.evolutionUsedThisTurn) {
-    for(let i=0;i<4;i++) {
-      let d = battleState.p2.dinoZones[i];
-      if(d) {
-        let possible = getEvolutionStages(d);
-        let avail = possible.filter(name => battleState.p2.hand.some(c=>c.name===name && c.category==='dino'));
-        if(avail.length) {
-          let nextCard = battleState.p2.hand.find(c=>c.name===avail[0]);
-          battleState.p2.graveyard.push({...d});
-          battleState.p2.dinoZones[i] = {...nextCard, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
-          let idx = battleState.p2.hand.findIndex(c=>c===nextCard);
-          battleState.p2.hand.splice(idx,1);
-          battleState.evolutionUsedThisTurn = true;
-          addLog(`AI evolved into ${nextCard.name}.`);
-          renderBattleUI();
-          break;
-        }
-      }
-    }
-  }
-  battleState.phase = 'battle';
-  renderBattleUI();
-  await new Promise(r=>setTimeout(r,500));
-  for(let i=0;i<4;i++) {
-    let attacker = battleState.p2.dinoZones[i];
-    if(attacker && !(attacker.ailments && attacker.ailments.includes('paralyzed'))) {
-      let targetIdx = battleState.p1.dinoZones.findIndex(d=>d);
-      if(targetIdx!==-1) {
-        let defender = battleState.p1.dinoZones[targetIdx];
-        let discard = Math.min(attacker.energyAttached?.length||0, 1);
-        for(let j=0;j<discard;j++) attacker.energyAttached.pop();
-        let typeMult = getTypeMultiplier(attacker.type, defender.type);
-        let attackPower = (attacker.power * typeMult) + (discard * 1000);
-        let defendPower = 0;
-        if(defender.energyAttached?.length>0 && Math.random()<0.5) {
-          defender.energyAttached.pop();
-          defendPower = defender.power;
-        }
-        let damage = Math.max(0, attackPower - defendPower);
-        defender.damage = (defender.damage||0) + damage;
-        addLog(`AI attacks ${defender.name}: ${attackPower} vs ${defendPower} -> ${damage} damage.`);
-        if(defender.damage >= defender.hp) {
-          let idx = battleState.p1.dinoZones.findIndex(d=>d===defender);
-          battleState.p1.graveyard.push(defender);
-          battleState.p1.dinoZones[idx] = null;
-          battleState.p2.points++;
-          addLog(`${defender.name} destroyed! AI gains a point.`);
-        }
+    if(battleState.turn === 1) {
+        battleState.turn = 2;
+        battleState.drawnThisTurn = false;
+        battleState.usedSwap = false;
+        battleState.evolutionUsedThisTurn = false;
+        battleState.starterMovedThisTurn = false;
+        battleState.phase = 'main';
         renderBattleUI();
-        await new Promise(r=>setTimeout(r,500));
-      }
+        addLog("AI's turn.");
+        setTimeout(() => aiTurn(), 800);
+    } else {
+        battleState.turn = 1;
+        battleState.drawnThisTurn = false;
+        battleState.usedSwap = false;
+        battleState.evolutionUsedThisTurn = false;
+        battleState.starterMovedThisTurn = false;
+        battleState.phase = 'main';
+        renderBattleUI();
+        addLog("Your turn. Click DECK to draw.");
     }
-  }
-  endTurn();
 }
-function showGY(pid) {
-  let p = battleState[`p${pid}`];
-  let container = document.getElementById("gyList");
-  container.innerHTML = "";
-  p.graveyard.forEach(card => {
-    let div = document.createElement("div"); div.className = "search-card";
-    let img = document.createElement("img");
-    setImageWithFallback(img, card.name);
-    div.appendChild(img);
-    div.onclick = () => alert(card.effect || "No effect");
-    container.appendChild(div);
-  });
-  document.getElementById("gyModal").style.display = "flex";
+
+async function aiTurn() {
+    if(battleState.turn !== 2) return;
+    addLog("🤖 AI thinking...");
+    await new Promise(r=>setTimeout(r,800));
+    if(!battleState.drawnThisTurn && battleState.p2.deck.length>0) {
+        battleState.p2.hand.push(battleState.p2.deck.pop());
+        battleState.drawnThisTurn = true;
+        addLog("AI draws a card.");
+        renderBattleUI();
+    }
+    let handDino = battleState.p2.hand.find(c=>c.category==='dino' && c.stage===1);
+    if(handDino) {
+        let empty = battleState.p2.dinoZones.findIndex(z=>!z);
+        if(empty!==-1) {
+            battleState.p2.dinoZones[empty] = {...handDino, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+            let idx = battleState.p2.hand.findIndex(c=>c===handDino);
+            battleState.p2.hand.splice(idx,1);
+            addLog(`AI played ${handDino.name}.`);
+            renderBattleUI();
+        }
+    }
+    if(!battleState.evolutionUsedThisTurn) {
+        for(let i=0;i<4;i++) {
+            let d = battleState.p2.dinoZones[i];
+            if(d) {
+                let possible = getEvolutionStages(d);
+                let avail = possible.filter(name => battleState.p2.hand.some(c=>c.name===name));
+                if(avail.length) {
+                    let nextCard = battleState.p2.hand.find(c=>c.name===avail[0]);
+                    battleState.p2.graveyard.push({...d});
+                    battleState.p2.dinoZones[i] = {...nextCard, damage:0, energyAttached:[], ailments:[], ailmentTurns:{}};
+                    let idx = battleState.p2.hand.findIndex(c=>c===nextCard);
+                    battleState.p2.hand.splice(idx,1);
+                    battleState.evolutionUsedThisTurn = true;
+                    addLog(`AI evolved into ${nextCard.name}.`);
+                    renderBattleUI();
+                    break;
+                }
+            }
+        }
+    }
+    battleState.phase = 'battle';
+    renderBattleUI();
+    await new Promise(r=>setTimeout(r,500));
+    for(let i=0;i<4;i++) {
+        let attacker = battleState.p2.dinoZones[i];
+        if(attacker && !(attacker.ailments && attacker.ailments.includes('paralyzed'))) {
+            let targetIdx = battleState.p1.dinoZones.findIndex(d=>d);
+            if(targetIdx!==-1) {
+                let defender = battleState.p1.dinoZones[targetIdx];
+                let discard = Math.min(attacker.energyAttached?.length||0, 1);
+                for(let j=0;j<discard;j++) attacker.energyAttached.pop();
+                let typeMult = getTypeMultiplier(attacker.type, defender.type);
+                let attackPower = (attacker.power * typeMult) + (discard * 1000);
+                let defendPower = 0;
+                if(defender.energyAttached?.length>0 && Math.random()<0.5) {
+                    defender.energyAttached.pop();
+                    defendPower = defender.power;
+                }
+                let damage = Math.max(0, attackPower - defendPower);
+                defender.damage = (defender.damage||0) + damage;
+                addLog(`AI attacks ${defender.name}: ${attackPower} vs ${defendPower} -> ${damage} damage.`);
+                if(defender.damage >= defender.hp) {
+                    let idx = battleState.p1.dinoZones.findIndex(d=>d===defender);
+                    battleState.p1.graveyard.push(defender);
+                    battleState.p1.dinoZones[idx] = null;
+                    battleState.p2.points++;
+                    addLog(`${defender.name} destroyed! AI gains a point.`);
+                }
+                renderBattleUI();
+                await new Promise(r=>setTimeout(r,500));
+            }
+        }
+    }
+    endTurn();
 }
+
 function renderBattleUI() {
-  let container = document.getElementById("battleContainer");
-  if(!battleState) { container.innerHTML = "<div>Start a match first</div>"; return; }
-  let html = `<div class="player-board opponent-board"><h3>🤖 AI</h3><div class="field-grid"><div class="grid-row mirror-row" id="battleP2TopRow"></div><div class="grid-row mirror-row" id="battleP2BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP2Hand"></div></div><div class="deck-grave-stack"><div class="stack-item" onclick="showGY(2)">💀 GRAVEYARD (${battleState.p2.graveyard.length})</div><div class="stack-item" onclick="drawBattleCard(2)">📖 DECK ${battleState.p2.deck.length}</div></div><div class="energy-pile" id="energyPile2" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,2,'energy',-1)"></div></div>`;
-  html += `<div id="fieldZoneDisplay" style="background:#2d2418aa; border-radius:48px; margin:24px 0; padding:20px; text-align:center;"><span>🌍 FIELD ZONE</span><div>None</div></div>`;
-  html += `<div class="player-board"><h3>🔥 YOU</h3><div class="field-grid"><div class="grid-row" id="battleP1TopRow"></div><div class="grid-row" id="battleP1BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP1Hand"></div></div><div class="deck-grave-stack"><div class="stack-item" onclick="showGY(1)">💀 GRAVEYARD (${battleState.p1.graveyard.length})</div><div class="stack-item" onclick="drawBattleCard(1)">📖 DECK ${battleState.p1.deck.length}</div></div><div class="energy-pile" id="energyPile1" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,1,'energy',-1)"></div></div>`;
-  html += `<div class="phase-bar"><div class="phase-btn active" id="phaseButton">⚔️ ${battleState.phase.toUpperCase()} PHASE (click to advance)</div><button id="endTurnBattleBtn">⏩ END TURN</button></div><div class="log" id="gameLog"></div>`;
-  container.innerHTML = html;
-  updateLogUI();
-  for(let pid of [1,2]) {
-    let pData = battleState[`p${pid}`];
-    let topRow = document.getElementById(`battleP${pid}TopRow`);
-    let bottomRow = document.getElementById(`battleP${pid}BottomRow`);
-    if(!topRow) continue;
-    let starterImg = getImagePath(pData.starterZone?.name || 'placeholder');
-    topRow.innerHTML = `<div class="zone-card starter-zone" onclick="moveStarterToField(${pid})"><img class="card-image" src="${starterImg}" onerror="this.src='${createPlaceholderImg(pData.starterZone?.name || 'Starter')}'" onclick="event.stopPropagation(); alert(pData.starterZone?.effect||'No effect')"><div class="card-stats"><span>❤️${pData.starterZone?.hp||0}</span></div></div>`;
-    for(let i=0;i<4;i++) {
-      let d = pData.dinoZones[i];
-      let curHp = d ? d.hp - (d.damage||0) : 0;
-      let buttons = "";
-      if(battleState.turn === pid && battleState.phase === 'battle' && d && !(d.ailments && d.ailments.includes('paralyzed'))) buttons += `<button class="action-btn attack" onclick="startAttackSelection(${pid},${i})">⚔️ ATTACK</button>`;
-      if(battleState.turn === pid && battleState.phase === 'main' && d) {
-        buttons += `<button class="action-btn evolve" onclick="attemptEvolution(${pid},${i})">🔄 EVOLVE</button>`;
-        if(!battleState.usedSwap) buttons += `<button class="action-btn" onclick="swapStarterWithField(${pid},${i})">🔄 SWAP STARTER</button>`;
-      }
-      let imgSrc = d ? getImagePath(d.name) : '';
-      let energyCount = d?.energyAttached?.length || 0;
-      let energyDisplay = "";
-      if(energyCount>0) {
-        energyDisplay = `<div class="energy-stack"><div class="energy-card"></div><div class="energy-count">x${energyCount}</div></div>`;
-      }
-      let ailClass = d?.ailments ? (d.ailments.includes('poison')?"poisoned": d.ailments.includes('bleed')?"bleeding": d.ailments.includes('paralyzed')?"paralyzed": d.ailments.includes('submerged')?"submerged":"") : "";
-      topRow.innerHTML += `<div class="zone-card dino-zone ${ailClass}" id="dinoZone_${pid}_${i}" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,${pid},'dino',${i})">
-        ${d ? `<div><img class="card-image" id="dinoImg_${pid}_${i}" src="${imgSrc}" onerror="this.src='${createPlaceholderImg(d.name)}'" onclick="alert(d.effect||'No effect')">${energyDisplay}<div class="card-stats"><span>❤️${curHp}/${d.hp}</span></div><div class="action-buttons">${buttons}</div></div>` : `<div class="card-image" style="background:#5e3a2e; display:flex; align-items:center; justify-content:center;">Empty</div>`}
-      </div>`;
+    let container = document.getElementById("battleContainer");
+    if(!battleState) { container.innerHTML = "<div>Start a match first</div>"; return; }
+    let html = `<div class="player-board opponent-board"><h3>🤖 AI</h3><div class="field-grid"><div class="grid-row mirror-row" id="battleP2TopRow"></div><div class="grid-row mirror-row" id="battleP2BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP2Hand"></div></div><div class="deck-grave-stack"><div class="stack-item" onclick="drawBattleCard(2)">📖 DECK ${battleState.p2.deck.length}</div></div><div class="energy-pile" id="energyPile2" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,2,'energy',-1)"></div></div>`;
+    html += `<div style="background:#2d2418aa; border-radius:48px; margin:24px 0; padding:20px; text-align:center;">🌍 FIELD ZONE</div>`;
+    html += `<div class="player-board"><h3>🔥 YOU</h3><div class="field-grid"><div class="grid-row" id="battleP1TopRow"></div><div class="grid-row" id="battleP1BottomRow"></div></div><div class="hand-area"><div class="hand-container" id="battleP1Hand"></div></div><div class="deck-grave-stack"><div class="stack-item" onclick="drawBattleCard(1)">📖 DECK ${battleState.p1.deck.length}</div></div><div class="energy-pile" id="energyPile1" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,1,'energy',-1)"></div></div>`;
+    html += `<div class="phase-bar"><div class="phase-btn active" id="phaseButton">⚔️ ${battleState.phase.toUpperCase()} PHASE (click to advance)</div><button id="endTurnBattleBtn">⏩ END TURN</button></div><div class="log" id="gameLog"></div>`;
+    container.innerHTML = html;
+    updateLogUI();
+
+    for(let pid of [1,2]) {
+        let pData = battleState[`p${pid}`];
+        let topRow = document.getElementById(`battleP${pid}TopRow`);
+        let bottomRow = document.getElementById(`battleP${pid}BottomRow`);
+        if(!topRow) continue;
+        topRow.innerHTML = `<div class="zone-card starter-zone" onclick="moveStarterToField(${pid})"><img class="card-image" src="${getImagePath(pData.starterZone?.name || 'placeholder')}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 160%22%3E%3Crect width=%22120%22 height=%22160%22 fill=%22%23c09a6b%22/%3E%3Ctext x=%2260%22 y=%2290%22 text-anchor=%22middle%22 fill=%22black%22%3E⭐%3C/text%3E%3C/svg%3E'"><div class="card-stats"><span>❤️${pData.starterZone?.hp||0}</span></div></div>`;
+        for(let i=0;i<4;i++) {
+            let d = pData.dinoZones[i];
+            let curHp = d ? d.hp - (d.damage||0) : 0;
+            let buttons = "";
+            if(battleState.turn === pid && battleState.phase === 'battle' && d) buttons += `<button class="action-btn attack" onclick="startAttackSelection(${pid},${i})">⚔️ ATTACK</button>`;
+            if(battleState.turn === pid && battleState.phase === 'main' && d) {
+                buttons += `<button class="action-btn evolve" onclick="attemptEvolution(${pid},${i})">🔄 EVOLVE</button>`;
+                if(!battleState.usedSwap) buttons += `<button class="action-btn" onclick="swapStarterWithField(${pid},${i})">🔄 SWAP STARTER</button>`;
+            }
+            let energyCount = d?.energyAttached?.length || 0;
+            let energyDisplay = "";
+            if(energyCount>0) {
+                energyDisplay = `<div class="energy-stack"><div class="energy-card"></div><div class="energy-count">x${energyCount}</div></div>`;
+            }
+            topRow.innerHTML += `<div class="zone-card dino-zone" id="dinoZone_${pid}_${i}" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,${pid},'dino',${i})">
+                ${d ? `<div><img class="card-image" src="${getImagePath(d.name)}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 160%22%3E%3Crect width=%22120%22 height=%22160%22 fill=%22%23c09a6b%22/%3E%3Ctext x=%2260%22 y=%2290%22 text-anchor=%22middle%22 fill=%22black%22 font-size=%2216%22%3E${d.name}%3C/text%3E%3C/svg%3E'">${energyDisplay}<div class="card-stats"><span>❤️${curHp}/${d.hp}</span></div><div class="action-buttons">${buttons}</div></div>` : `<div class="card-image" style="background:#5e3a2e; display:flex; align-items:center; justify-content:center;">Empty</div>`}
+            </div>`;
+        }
+        bottomRow.innerHTML = `<div class="zone-card energy-zone"><div class="card-image" style="background:#c9510c; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">⚡ ENERGY</div><div class="card-stats">Drag energy to dino</div></div>`;
+        for(let i=0;i<4;i++) {
+            let r = pData.researchZones[i];
+            bottomRow.innerHTML += `<div class="zone-card research-zone" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,${pid},'research',${i})">
+                ${r ? `<img class="card-image" src="${getImagePath(r.name)}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 160%22%3E%3Crect width=%22120%22 height=%22160%22 fill=%22%23c09a6b%22/%3E%3Ctext x=%2260%22 y=%2290%22 text-anchor=%22middle%22 fill=%22black%22%3E${r.name}%3C/text%3E%3C/svg%3E'"><div class="card-stats">${r.name}</div>` : `<div class="card-image" style="background:#2a4b55;">Empty</div>`}
+            </div>`;
+        }
+        let pileDiv = document.getElementById(`energyPile${pid}`);
+        pileDiv.innerHTML = "";
+        pData.energyPile.forEach((eng, idx) => {
+            let ediv = document.createElement("div"); ediv.className = "energy-pile-card";
+            ediv.setAttribute("draggable","true");
+            ediv.ondragstart = (e) => onEnergyDragStart(e, pid, idx);
+            let img = document.createElement("img");
+            img.src = getImagePath(eng.name);
+            img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 100'%3E%3Crect width='80' height='100' fill='%23c09a6b'/%3E%3Ctext x='40' y='60' text-anchor='middle' fill='black'%3E⚡%3C/text%3E%3C/svg%3E"; };
+            ediv.appendChild(img);
+            pileDiv.appendChild(ediv);
+        });
+        let handDiv = document.getElementById(`battleP${pid}Hand`);
+        handDiv.innerHTML = "";
+        pData.hand.forEach((card, idx) => {
+            let cdiv = document.createElement("div"); cdiv.className = "hand-card";
+            let img = document.createElement("img");
+            img.src = getImagePath(card.name);
+            img.onerror = () => { img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160'%3E%3Crect width='120' height='160' fill='%23c09a6b'/%3E%3Ctext x='60' y='90' text-anchor='middle' fill='black' font-size='16'%3E" + card.name + "%3C/text%3E%3C/svg%3E"; };
+            cdiv.appendChild(img);
+            cdiv.onclick = () => playCardFromHand(pid, idx);
+            handDiv.appendChild(cdiv);
+        });
     }
-    bottomRow.innerHTML = `<div class="zone-card energy-zone"><div class="card-image" style="background:#c9510c; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">⚡ ENERGY</div><div class="card-stats">Drag energy to dino/research</div></div>`;
-    for(let i=0;i<4;i++) {
-      let r = pData.researchZones[i];
-      let imgSrc = r ? getImagePath(r.name) : '';
-      bottomRow.innerHTML += `<div class="zone-card research-zone" ondragover="allowDrop(event)" ondrop="onEnergyDrop(event,${pid},'research',${i})">
-        ${r ? `<img class="card-image" src="${imgSrc}" onerror="this.src='${createPlaceholderImg(r.name)}'" onclick="alert(r.effect)"><div class="card-stats">${r.name}</div>` : `<div class="card-image" style="background:#2a4b55; display:flex; align-items:center; justify-content:center;">Empty</div>`}
-      </div>`;
-    }
-    let pileDiv = document.getElementById(`energyPile${pid}`);
-    pileDiv.innerHTML = "";
-    pData.energyPile.forEach((eng, idx) => {
-      let ediv = document.createElement("div"); ediv.className = "energy-pile-card";
-      ediv.setAttribute("draggable","true");
-      ediv.ondragstart = (e) => onEnergyDragStart(e, pid, idx);
-      let img = document.createElement("img");
-      setImageWithFallback(img, eng.name);
-      ediv.appendChild(img);
-      pileDiv.appendChild(ediv);
-    });
-    let handDiv = document.getElementById(`battleP${pid}Hand`);
-    handDiv.innerHTML = "";
-    pData.hand.forEach((card, idx) => {
-      let cdiv = document.createElement("div"); cdiv.className = "hand-card";
-      let img = document.createElement("img");
-      setImageWithFallback(img, card.name);
-      cdiv.appendChild(img);
-      cdiv.onclick = () => playCardFromHand(pid, idx);
-      handDiv.appendChild(cdiv);
-    });
-  }
-  document.getElementById("phaseButton")?.addEventListener("click", nextPhase);
-  document.getElementById("endTurnBattleBtn")?.addEventListener("click", endTurn);
+    document.getElementById("phaseButton")?.addEventListener("click", nextPhase);
+    document.getElementById("endTurnBattleBtn")?.addEventListener("click", endTurn);
 }
+
 function initBattlePage() {
-  let p1 = document.getElementById("p1DeckSelect");
-  let p2 = document.getElementById("p2DeckSelect");
-  p1.innerHTML = ""; p2.innerHTML = "";
-  for(let i=1;i<=3;i++) {
-    p1.innerHTML += `<option value="p1_deck${i}">Player 1 Deck ${i}</option>`;
-    p2.innerHTML += `<option value="p2_deck${i}">Player 2 Deck ${i}</option>`;
-  }
-  document.getElementById("startMatchBtn").onclick = () => startMatch(getDeck(p1.value), getDeck(p2.value));
-  document.getElementById("backToMenuFromBattle").onclick = showMainMenu;
+    let p1 = document.getElementById("p1DeckSelect");
+    p1.innerHTML = "";
+    for(let i=1;i<=3;i++) p1.innerHTML += `<option value="p1_deck${i}">Deck ${i}</option>`;
+    document.getElementById("startMatchBtn").onclick = () => startMatch(getDeck(p1.value), []);
+    document.getElementById("backToMenuFromBattle").onclick = showMainMenu;
 }
+
+// Expose globals
 window.drawBattleCard = drawBattleCard;
 window.onEnergyDrop = onEnergyDrop;
 window.allowDrop = allowDrop;
@@ -922,10 +881,8 @@ window.startAttackSelection = startAttackSelection;
 window.attemptEvolution = attemptEvolution;
 window.swapStarterWithField = swapStarterWithField;
 window.moveStarterToField = moveStarterToField;
-window.showGY = showGY;
 window.playCardFromHand = playCardFromHand;
-window.nextPhase = nextPhase;
-window.endTurn = endTurn;
+
 showMainMenu();
 </script>
 </body>
