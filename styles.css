@@ -367,3 +367,20 @@ button:hover { background: #f0b050; transform: scale(1.02); }
   .battle-layout { flex-direction: column; }
   .zoom-panel { position: static; transform: none; width: 100%; margin-bottom: 20px; }
 }
+
+
+/* V3 Overhaul */
+.field-zone-shared{margin:20px auto;padding:16px;border:3px solid #ffd54a;border-radius:24px;text-align:center;background:#3b2f18}
+.zone-card{transition:all .25s ease}
+.zone-card:hover{transform:translateY(-8px) scale(1.04);box-shadow:0 0 20px gold}
+.energy-zone{border:3px solid #ff7b00}
+.starter-zone{border:3px solid #ffee58}
+.deck-zone{border:3px solid #42a5f5}
+.gy-zone{border:3px solid #ab47bc}
+.attacking{animation:attackLunge .45s ease}
+@keyframes attackLunge{0%{transform:translateX(0)}50%{transform:translateX(100px) scale(1.08)}100%{transform:translateX(0)}}
+.hitflash{animation:hitFlash .35s ease}
+@keyframes hitFlash{50%{filter:brightness(2)}}
+.poisoned{box-shadow:0 0 15px lime}
+.bleeding{box-shadow:0 0 15px red}
+.submerged{transform:rotate(90deg)}
